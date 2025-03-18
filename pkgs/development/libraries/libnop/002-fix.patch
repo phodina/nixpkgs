@@ -1,0 +1,39 @@
+diff --git a/Makefile b/Makefile
+index 84cb459..1899305 100644
+--- a/Makefile
++++ b/Makefile
+@@ -27,12 +27,6 @@ OUT_HOST_OBJ := $(OUT)/host-obj
+ ALL :=
+ DEPS :=
+ 
+-# Determine whether the compiler can find gtest.
+-HAS_GTEST := $(shell \
+-       echo "\#include <gtest/gtest.h>" \
+-       | $(CXX) -I$(GTEST_INCLUDE) -x c++ -E - > /dev/null 2>&1 \
+-       && echo yes)
+-
+ # Print warning if gtest is not found.
+ ifneq ("$(HAS_GTEST)","yes")
+ 
+diff --git a/include/nop/base/map.h b/include/nop/base/map.h
+index 7c4cb9a..1b028a9 100644
+--- a/include/nop/base/map.h
++++ b/include/nop/base/map.h
+@@ -67,7 +67,7 @@ struct Encoding<std::map<Key, T, Compare, Allocator>>
+     if (!status)
+       return status;
+ 
+-    for (const std::pair<Key, T>& element : value) {
++    for (const auto& element : value) {
+       status = Encoding<Key>::Write(element.first, writer);
+       if (!status)
+         return status;
+@@ -139,7 +139,7 @@ struct Encoding<std::unordered_map<Key, T, Hash, KeyEqual, Allocator>>
+     if (!status)
+       return status;
+ 
+-    for (const std::pair<Key, T>& element : value) {
++    for (const auto& element : value) {
+       status = Encoding<Key>::Write(element.first, writer);
+       if (!status)
+         return status;
