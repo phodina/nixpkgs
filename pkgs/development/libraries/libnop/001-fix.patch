@@ -1,0 +1,16 @@
+diff --git a/Makefile b/Makefile
+index 84cb459..1899305 100644
+--- a/Makefile
++++ b/Makefile
+@@ -27,12 +27,6 @@ OUT_HOST_OBJ := $(OUT)/host-obj
+ ALL :=
+ DEPS :=
+ 
+-# Determine whether the compiler can find gtest.
+-HAS_GTEST := $(shell \
+-       echo "\#include <gtest/gtest.h>" \
+-       | $(CXX) -I$(GTEST_INCLUDE) -x c++ -E - > /dev/null 2>&1 \
+-       && echo yes)
+-
+ # Print warning if gtest is not found.
+ ifneq ("$(HAS_GTEST)","yes")
