@@ -310,6 +310,8 @@ with pkgs;
     buildGoModule = buildGo123Module;
   };
 
+  depthai-core = callPackage ../development/libraries/depthai-core { };
+
   dhallDirectoryToNix = callPackage ../build-support/dhall/directory-to-nix.nix { };
 
   dhallPackageToNix = callPackage ../build-support/dhall/package-to-nix.nix { };
@@ -1615,6 +1617,8 @@ with pkgs;
       appimage-run-tests = null; /* break boostrap cycle for passthru.tests */
     };
   };
+
+  apriltags = callPackage ../development/libraries/apriltags { };
 
   ArchiSteamFarm = callPackage ../applications/misc/ArchiSteamFarm { };
 
@@ -3307,6 +3311,8 @@ with pkgs;
 
   fpm = callPackage ../tools/package-management/fpm { };
 
+  fp16 = callPackage ../development/libraries/fp16 { };
+
   ferdium = callPackage ../applications/networking/instant-messengers/ferdium {
     mkFranzDerivation = callPackage ../applications/networking/instant-messengers/franz/generic.nix { };
   };
@@ -4917,6 +4923,8 @@ with pkgs;
   seqdiag = with python3Packages; toPythonApplication seqdiag;
 
   shadowsocks-rust = callPackage ../tools/networking/shadowsocks-rust { };
+
+  neargye-semver = callPackage ../development/libraries/neargye-semver { };
 
   shellify = haskellPackages.shellify.bin;
 
@@ -9972,6 +9980,8 @@ with pkgs;
 
   libnghttp2 = nghttp2.lib;
 
+  libnop = callPackage ../development/libraries/libnop { };
+
   nghttp3 = callPackage ../development/libraries/nghttp3 { inherit (darwin.apple_sdk.frameworks) CoreServices; };
 
   ngtcp2 = callPackage ../development/libraries/ngtcp2 { };
@@ -12716,6 +12726,8 @@ with pkgs;
 
   xlsx2csv = with python3Packages; toPythonApplication xlsx2csv;
 
+  xlink = callPackage ../development/libraries/xlink { };
+
   zafiro-icons = callPackage ../data/icons/zafiro-icons {
     inherit (plasma5Packages) breeze-icons;
   };
@@ -15281,6 +15293,8 @@ with pkgs;
 
   traverso = libsForQt5.callPackage ../applications/audio/traverso { };
 
+  libtropic-util = callPackage ../development/libraries/libtropic-util { };
+
   tinywl = callPackage ../applications/window-managers/tinywl {
     wlroots = wlroots_0_18;
   };
@@ -15820,6 +15834,8 @@ with pkgs;
   };
 
   cryptop = python3.pkgs.callPackage ../applications/blockchains/cryptop { };
+
+  cpr = callPackage ../development/libraries/cpr { };
 
   electrs = callPackage ../applications/blockchains/electrs {
     inherit (darwin.apple_sdk.frameworks) Security;
