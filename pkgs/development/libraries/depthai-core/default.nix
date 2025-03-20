@@ -3,6 +3,8 @@
 , fetchurl
 , fetchFromGitHub
 , cmake
+, gcc
+, gcc-unwrapped
 , clang-tools
 , pkg-config
 , libusb1
@@ -11,11 +13,13 @@
 , libpng
 , libarchive
 , httplib
-, openssl_3
+, openssl
 , protobuf
 , xtensor
 , cproto
+, eigen
 , yaml-cpp
+, jsoncpp
 , spdlog
 , argparse
 , magic-enum
@@ -25,6 +29,9 @@
 , mp4v2
 , neargye-semver
 , backward-cpp
+, pcl
+, python312Packages
+, catch2_3
 , xorg
 , git
 , bzip2
@@ -36,19 +43,17 @@
 , curl
 , cpr
 , xtl
+, fmt
+, zlib
+, depthai-data
 }:
 
-stdenv.mkDerivation rec {
-  pname = "depthai-core";
-  version = "3.0.0-alpha.14";
-
-  src = fetchFromGitHub {
-    owner = "luxonis";
-    repo = "depthai-core";
-    rev = "v${version}";
-    sha256 = "sha256-Ayd4kwcOJewIGmfuSu8Hs91YPfcxOSmIK5RfLMVbTk8=";
-    fetchSubmodules = true;
-  };
+let
+  inherit (python312Packages)
+    mypy
+    pybind11
+    pybind11-stubgen
+    ;
 
   # depthai-bootloader-fwp
   datasrc = [ (fetchurl {
@@ -124,6 +129,76 @@ stdenv.mkDerivation rec {
          hash = "sha256-Xm8oBZfVj/ZpqCe0HBIiLmP6sQ5Y3djZtALBn9IdcTA="; })
 ];
 
+  testsrc = [ (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/mobilenet-ssd_openvino_2021.2_8shave.blob";
+        hash = "sha256-4MYBVu6XsBrBFa2DjRPI2QVZBk/sBMbUI7sD/cQFJOs="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2020.3_4shave.blob";
+        hash = "sha256-aB+4Uyxbnjn0C0My8+1c7eRUMF05k7cRvsS7MfRImTo="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2020.4_4shave.blob";
+        hash = "sha256-hAgAyMwEOkM1LzpUOOw1xHfeGeba8y2Z1MvPRUKUmjc="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2021.1_4shave.blob";
+        hash = "sha256-lVCjt2qKfph9HSiBOZqoTtZx7H1iJawgos16z5Rx8DQ="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2021.2_4shave.blob";
+        hash = "sha256-sPiMds+kpBWGFPZUttobRgATf9id8H6fc8uIkxRqS14="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2021.3_4shave.blob";
+        hash = "sha256-blY/4fDaTR+BOs/7FgUMSrU7qpjYgYUUY5A24VayhX8="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2021.4.2_4shave.blob";
+        hash = "sha256-XIPLPOfVopNXqXXl3zzRFjdBoTNpXHkEzUQI4z8H8bw="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/text-image-super-resolution-0001_2022.1.0_4shave.blob";
+        hash = "sha256-Ok7EhNKJCDWtsjnAauHyKxFBwCzHC9JmG3+eN3A6I+4="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/yolo-v4-tiny-tf_openvino_2021.4_4shave.blob";
+        hash = "sha256-aOn8BJcfYCA4RXUF99kPPbgeC/b3O/oOH+1Uhuxv/MM="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/person-reidentification-retail-0277_openvino_2022.1_8shave.superblob";
+        hash = "sha256-mXvM/HSe1PaZ4M/MPdfDm09A12MgG9qFwcJxe+XWBfs="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/nnarchive/yolo_blob_nnarchive.tar.xz";
+        hash = "sha256-tqqrvv/PSkHCss7hhpdndRzRq0qQWn1ZEpb+A6d4gZI="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/nnarchive/yolo_superblob_nnarchive.tar.xz";
+        hash = "sha256-lH/Ulvbn5UOZ9T59G9HocTPBefw2s10Ih/zl+yoPTXg="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/network/nnarchive/yolo_onnx_nnarchive.tar.xz";
+        hash = "sha256-oBrCwV07sicg6rBCAFlQ9gptRk1z+j0KeSN6cAtXzGU="; })
+
+        (fetchurl {
+        url = "https://artifacts.luxonis.com/artifactory/luxonis-depthai-data-local/images/lenna.png";
+        hash = "sha256-fkl1AaKLz5o1PMrfbrkha/CYrDKIj7VC+5v+cdSGdh8="; })
+];
+in
+stdenv.mkDerivation rec {
+  pname = "depthai-core";
+  version = "3.0.0-alpha.14";
+
+  src = fetchFromGitHub {
+    owner = "luxonis";
+    repo = "depthai-core";
+    rev = "v${version}";
+    sha256 = "sha256-Ayd4kwcOJewIGmfuSu8Hs91YPfcxOSmIK5RfLMVbTk8=";
+    fetchSubmodules = true;
+  };
+
+
   patches = [
     ./001-build.patch
   ];
@@ -133,13 +208,11 @@ stdenv.mkDerivation rec {
     clang-tools
     git
     pkg-config
-    libarchive
-    bzip2
-    lz4
-    xz
+    catch2_3
   ];
 
   buildInputs = [
+    gcc-unwrapped.lib # provides libstdc++.so.6
     argparse
     boost186
     libusb1
@@ -147,7 +220,7 @@ stdenv.mkDerivation rec {
     opencv4
     xorg.libX11
     httplib
-    openssl_3
+    openssl
     protobuf
     cproto
     xtensor
@@ -165,15 +238,87 @@ stdenv.mkDerivation rec {
     xlink
     cpr
     fp16
+    curl
+    mp4v2
+    pcl
+    eigen
+    jsoncpp
+    fmt
+    libarchive
+    bzip2
+    lz4
+    xz
+    zlib
+    depthai-data
   ];
 
-  propagatedBuildInputs = [ mp4v2 curl ];
+  propagatedBuildInputs = [ pybind11 pybind11-stubgen mypy ];
 
   cmakeFlags = [
     "-DDEPTHAI_BOOTSTRAP_VCPKG=OFF"
     "-DBUILD_SHARED_LIBS=ON"
     "-DDEPTHAI_BUILD_EXAMPLES=ON"
+    "-DDEPTHAI_TEST_EXAMPLES=ON"
+    "-DDEPTHAI_PCL_SUPPORT=ON"
+    #"-DDEPTHAI_BUILD_TESTS=ON"
+    #"-DDEPTHAI_BUILD_PYTHON=ON"
+    #"-DDEPTHAI_RESOURCES_OUTPUT_DIR=${datasrc}"
   ];
+
+#  postInstall = ''
+#    mkdir -p $out/share/${pname}
+#    
+#    # Find all executables in the build directory and copy them to share
+#    find $buildDir -type f -executable -not -path "*/\.*" | while read exec_file; do
+#      cp "$exec_file" $out/share/${pname}/
+#    done
+#    
+#    # Create a file listing all available executables
+#    ls -la $out/share/${pname} > $out/share/${pname}/executable_list.txt
+#  '';
+
+  # Add rpath to all executables to find the libraries
+  postFixup = ''
+    mkdir -p $out/share/
+    mkdir -p $out/lib/
+   
+    # Find all shared libraries in the build directory and copy them to lib directory
+    find $buildDir -name "*.so*" -type f -not -path "*/\.*" | while read lib_file; do
+      cp -P "$lib_file" $out/lib/
+    done
+    
+    # Find all shared libraries in the build directory and copy them to lib directory
+    # Exclude static libraries (.a files) and only copy shared objects (.so files)
+    find $buildDir -name "*.so*" -type f -not -name "*.a" -not -path "*/\.*" | while read lib_file; do
+      lib_basename=$(basename "$lib_file")
+      if [ ! -e "$out/lib/$lib_basename" ]; then
+        cp -P "$lib_file" $out/lib/
+      else
+        echo "Skipping $lib_basename as it already exists in $out/lib/"
+      fi
+    done
+ 
+    # Find all executables in the build directory and copy them to share
+    find $buildDir -type f -executable -not -path "*/\.*" | while read exec_file; do
+      cp "$exec_file" $out/share/
+    done
+    
+    # Patch the executables in the share directory
+    for f in $out/share/*; do
+      if [ -f "$f" ] && [ -x "$f" ]; then
+        echo "Patching $f"
+        patchelf --set-rpath "${lib.makeLibraryPath buildInputs}:$out/lib" "$f" || true
+      fi
+    done
+    
+    # Also patch the binaries in the bin directory
+    for f in $out/bin/*; do
+      if [ -f "$f" ] && [ -x "$f" ]; then
+        echo "Patching $f"
+        patchelf --set-rpath "${lib.makeLibraryPath buildInputs}:$out/lib" "$f" || true
+      fi
+    done
+  '';
 
   meta = with lib; {
     description = "Core C++ library for Luxonis OAK devices";
