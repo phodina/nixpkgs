@@ -1,8 +1,34 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 2f02763fb..da3cff4b5 100644
+index 2f02763fb..be006b6a1 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -755,7 +755,7 @@ if(DEPTHAI_BINARIES_RESOURCE_COMPILE)
+@@ -233,6 +233,7 @@ set(PROJECT_EXPORT_GROUP "${PROJECT_NAME}Targets")
+ 
+ ## Check if cloned or sources
+ find_package(Git)
++find_package(foxglove-websocket)
+ if(GIT_FOUND)
+     execute_process(
+         COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
+@@ -526,7 +527,7 @@ target_include_directories(zoo_helper
+     PRIVATE
+         # Relative path to include directories after installed
+         "$<INSTALL_INTERFACE:include>"
+-        "$<INSTALL_INTERFACE:include/${DEPTHAI_SHARED_3RDPARTY_HEADERS_PATH}>"
++	"$<INSTALL_INTERFACE:include/${DEPTHAI_SHARED_3RDPARTY_HEADERS_PATH}>"
+ 
+         # Build time path to include directories
+         "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
+@@ -569,7 +570,7 @@ endif()
+ set_property(TARGET ${TARGET_CORE_NAME} PROPERTY CXX_STANDARD 17)
+ set_property(TARGET ${TARGET_CORE_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+ set_property(TARGET ${TARGET_CORE_NAME} PROPERTY CXX_EXTENSIONS OFF)
+-# Add interface transitive property (C++17)
++# Add interface transitive property (C++20)
+ if(${CMAKE_VERSION} VERSION_LESS "3.8.0")
+     target_compile_features(${TARGET_CORE_NAME} INTERFACE cxx_generic_lambdas)
+ else()
+@@ -755,7 +756,7 @@ if(DEPTHAI_BINARIES_RESOURCE_COMPILE)
      )
  
      # Link to resource library
@@ -11,7 +37,16 @@ index 2f02763fb..da3cff4b5 100644
  
      # Set define that binaries are resource compiled
      target_compile_definitions(${TARGET_CORE_NAME} PRIVATE DEPTHAI_RESOURCE_COMPILED_BINARIES)
-@@ -804,7 +804,6 @@ endif()
+@@ -771,7 +772,7 @@ target_include_directories(${TARGET_CORE_NAME}
+     PUBLIC
+         # Relative path to include directories after installed
+         "$<INSTALL_INTERFACE:include>"
+-        "$<INSTALL_INTERFACE:include/${DEPTHAI_SHARED_3RDPARTY_HEADERS_PATH}>"
++	"$<INSTALL_INTERFACE:include/${DEPTHAI_SHARED_3RDPARTY_HEADERS_PATH}>"
+ 
+         # Build time path to include directories
+         "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
+@@ -804,7 +805,6 @@ endif()
  target_link_libraries(${TARGET_CORE_NAME}
      PUBLIC
          nlohmann_json::nlohmann_json
@@ -19,7 +54,7 @@ index 2f02763fb..da3cff4b5 100644
          spdlog::spdlog
          yaml-cpp::yaml-cpp
      INTERFACE
-@@ -814,12 +813,10 @@ target_link_libraries(${TARGET_CORE_NAME}
+@@ -814,13 +814,12 @@ target_link_libraries(${TARGET_CORE_NAME}
          Threads::Threads
          BZip2::BZip2
          LibArchive::LibArchive
@@ -32,9 +67,24 @@ index 2f02763fb..da3cff4b5 100644
 -        semver::semver
 +        mp4v2
          magic_enum::magic_enum
++	stdc++fs
  )
  
-@@ -847,13 +844,13 @@ endif()
+ if(DEPTHAI_ENABLE_PROTOBUF)
+@@ -833,9 +832,9 @@ if(DEPTHAI_ENABLE_PROTOBUF)
+ endif()
+ 
+ if(DEPTHAI_ENABLE_REMOTE_CONNECTION)
+-    target_link_libraries(${TARGET_CORE_NAME} PRIVATE
+-        foxglove-websocket::foxglove-websocket
+-    )
++	target_link_libraries(${TARGET_CORE_NAME} PRIVATE
++	    foxglove_websocket
++	)
+     target_compile_definitions(${TARGET_CORE_NAME} PRIVATE DEPTHAI_ENABLE_REMOTE_CONNECTION)
+ endif()
+ 
+@@ -847,13 +846,13 @@ endif()
  
  if(DEPTHAI_ENABLE_CURL)
      target_link_libraries(${TARGET_CORE_NAME} PRIVATE
@@ -52,7 +102,7 @@ index 2f02763fb..da3cff4b5 100644
      )
      target_compile_definitions(zoo_helper PRIVATE DEPTHAI_ENABLE_CURL)
  endif()
-@@ -906,7 +903,6 @@ endif()
+@@ -906,7 +905,6 @@ endif()
  # Add Backward dependency if enabled (On by default)
  if(DEPTHAI_ENABLE_BACKWARD)
      target_compile_definitions(${TARGET_CORE_NAME} PRIVATE DEPTHAI_ENABLE_BACKWARD)
@@ -60,6 +110,28 @@ index 2f02763fb..da3cff4b5 100644
  endif()
  
  # Add patch only mode definition
+@@ -1315,7 +1313,7 @@ if(DEPTHAI_INSTALL)
+     # Install depthai-bootloader-shared public headers
+     install(DIRECTORY "${DEPTHAI_BOOTLOADER_SHARED_PUBLIC_INCLUDE}/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+     # Install depthai-core dependencies
+-    install(DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/3rdparty" DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake")
++    #install(DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/3rdparty" DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake")
+     # Install resources if not RC'd
+     if(NOT DEPTHAI_BINARIES_RESOURCE_COMPILE)
+         install(DIRECTORY "${DEPTHAI_RESOURCES_OUTPUT_DIR}/" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}")
+diff --git a/cmake/CMakeRC.cmake b/cmake/CMakeRC.cmake
+index 2095e26c2..7df883619 100644
+--- a/cmake/CMakeRC.cmake
++++ b/cmake/CMakeRC.cmake
+@@ -53,7 +53,7 @@ endif()
+ 
+ set(_version 2.0.0)
+ 
+-cmake_minimum_required(VERSION 3.3)
++cmake_minimum_required(VERSION 3.10)
+ include(CMakeParseArguments)
+ 
+ if(COMMAND cmrc_add_resource_library)
 diff --git a/cmake/DepthaiBootloaderDownloader.cmake b/cmake/DepthaiBootloaderDownloader.cmake
 index 5d1540159..9a75c771a 100644
 --- a/cmake/DepthaiBootloaderDownloader.cmake
@@ -231,8 +303,20 @@ index 6c44e1230..557d2f58b 100644
  
  
      # Set list of files as output
+diff --git a/cmake/Flags.cmake b/cmake/Flags.cmake
+index 39c067d52..63ff09556 100644
+--- a/cmake/Flags.cmake
++++ b/cmake/Flags.cmake
+@@ -17,6 +17,7 @@ function(add_default_flags target)
+             # enable those flags
+             add_flag(${target} -Wall)
+             add_flag(${target} -Wextra)
++            add_flag(${target} -std=c++17)
+             add_flag(${target} -Woverloaded-virtual)     # warn if you overload (not override) a virtual function
+             add_flag(${target} -Wformat=2)               # warn on security issues around functions that format output (ie printf)
+             add_flag(${target} -Wmisleading-indentation) # (only in GCC >= 6.0) warn if indentation implies blocks where blocks do not exist
 diff --git a/cmake/depthaiDependencies.cmake b/cmake/depthaiDependencies.cmake
-index 7cea6bb56..8ed9e75c5 100644
+index 7cea6bb56..8f92ea4d5 100644
 --- a/cmake/depthaiDependencies.cmake
 +++ b/cmake/depthaiDependencies.cmake
 @@ -44,7 +44,6 @@ if(NOT CONFIG_MODE OR (CONFIG_MODE AND NOT DEPTHAI_SHARED_LIBS))
@@ -265,19 +349,26 @@ index 7cea6bb56..8ed9e75c5 100644
      if(DEPTHAI_HAS_APRIL_TAG)
          find_package(apriltag ${_QUIET} CONFIG REQUIRED)
      endif()
-@@ -79,8 +72,10 @@ endif()
+@@ -79,12 +72,14 @@ endif()
  # Xtensor
  get_filename_component(PARENT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
  if(DEPTHAI_XTENSOR_SUPPORT)
 -    add_subdirectory("${PARENT_DIRECTORY}/3rdparty/xtl" xtl)
 -    add_subdirectory("${PARENT_DIRECTORY}/3rdparty/xtensor" xtensor)
+-endif()
+-if(DEPTHAI_ENABLE_REMOTE_CONNECTION)
+-    add_subdirectory("${PARENT_DIRECTORY}/3rdparty/foxglove/ws-protocol/cpp/foxglove-websocket" foxglove-websocket)
 +    # add_subdirectory("${PARENT_DIRECTORY}/3rdparty/xtl" xtl)
 +    # add_subdirectory("${PARENT_DIRECTORY}/3rdparty/xtensor" xtensor)
 +    find_package(xtl 0.7.7 ${_QUIET} CONFIG REQUIRED)
 +    find_package(xtensor 0.25.0 ${_QUIET} CONFIG REQUIRED)
  endif()
- if(DEPTHAI_ENABLE_REMOTE_CONNECTION)
-     add_subdirectory("${PARENT_DIRECTORY}/3rdparty/foxglove/ws-protocol/cpp/foxglove-websocket" foxglove-websocket)
++# if(DEPTHAI_ENABLE_REMOTE_CONNECTION)
++#     add_subdirectory("${PARENT_DIRECTORY}/3rdparty/foxglove/ws-protocol/cpp/foxglove-websocket" foxglove-websocket)
++# endif()
+ 
+ # Add threads (c++)
+ find_package(Threads ${_QUIET} REQUIRED)
 @@ -93,10 +88,10 @@ find_package(Threads ${_QUIET} REQUIRED)
  find_package(nlohmann_json 3.6.0 ${_QUIET} CONFIG REQUIRED)
  
@@ -291,8 +382,36 @@ index 7cea6bb56..8ed9e75c5 100644
  
  if(DEPTHAI_ENABLE_PROTOBUF)
      find_package(Protobuf ${_QUIET} REQUIRED)
+@@ -107,18 +102,18 @@ if(DEPTHAI_BUILD_TESTS)
+ endif()
+ 
+ # XLink
+-if(DEPTHAI_XLINK_LOCAL AND (NOT CONFIG_MODE))
+-    set(_BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
+-    set(BUILD_SHARED_LIBS OFF)
+-    add_subdirectory("${DEPTHAI_XLINK_LOCAL}" ${CMAKE_CURRENT_BINARY_DIR}/XLink)
+-    set(BUILD_SHARED_LIBS "${_BUILD_SHARED_LIBS_SAVED}")
+-    unset(_BUILD_SHARED_LIBS_SAVED)
+-    list(APPEND targets_to_export XLink XLinkPublic)
+-else()
++#if(DEPTHAI_XLINK_LOCAL AND (NOT CONFIG_MODE))
++#    set(_BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
++#    set(BUILD_SHARED_LIBS OFF)
++#    add_subdirectory("${DEPTHAI_XLINK_LOCAL}" ${CMAKE_CURRENT_BINARY_DIR}/XLink)
++#    set(BUILD_SHARED_LIBS "${_BUILD_SHARED_LIBS_SAVED}")
++#    unset(_BUILD_SHARED_LIBS_SAVED)
++#    list(APPEND targets_to_export XLink XLinkPublic)
++    #else()
+     # TODO(themarpe) - might be required
+     # elseif(NOT DEPTHAI_XLINK_LOCAL)
+     find_package(XLink ${_QUIET} CONFIG REQUIRED HINTS "${CMAKE_CURRENT_LIST_DIR}/XLink" "${CMAKE_CURRENT_LIST_DIR}/../XLink")
+-endif()
++    #endif()
+ 
+ # OpenCV 4 - (optional)
+ message("DEPTHAI_OPENCV_SUPPORT: ${DEPTHAI_OPENCV_SUPPORT}")
 diff --git a/examples/cpp/CMakeLists.txt b/examples/cpp/CMakeLists.txt
-index 608a4d4e5..dd0b8e10e 100644
+index 608a4d4e5..928a1e586 100644
 --- a/examples/cpp/CMakeLists.txt
 +++ b/examples/cpp/CMakeLists.txt
 @@ -11,6 +11,9 @@ target_include_directories(utility PUBLIC "utility" "$<BUILD_INTERFACE:${FP16_IN
@@ -315,6 +434,17 @@ index 608a4d4e5..dd0b8e10e 100644
      add_executable(${example_name} ${example_src})
      add_default_flags(${example_name} LEAN)
      set(DEPTHAI_TARGET depthai::core)
+@@ -32,8 +36,8 @@ function(dai_add_example example_name example_src enable_test use_pcl)
+         set(DEPTHAI_TARGET depthai::opencv)
+     endif()
+     target_link_libraries(${example_name} PRIVATE utility ${DEPTHAI_TARGET} ${OpenCV_LIBS} Threads::Threads)
+-    # Set compiler features (c++17), and disables extensions (g++17)
+-    set_property(TARGET ${example_name} PROPERTY CXX_STANDARD 17)
++    # Set compiler features (c++17), and disables extensions (g++20)
++    set_property(TARGET ${example_name} PROPERTY CXX_STANDARD 20)
+     set_property(TARGET ${example_name} PROPERTY CXX_STANDARD_REQUIRED ON)
+     set_property(TARGET ${example_name} PROPERTY CXX_EXTENSIONS OFF)
+ 
 @@ -115,139 +119,139 @@ endfunction()
  
  # Hunter test data download
@@ -600,6 +730,143 @@ index 608a4d4e5..dd0b8e10e 100644
 +    # Install each executable to the specified directory
 +    install(TARGETS ${file} DESTINATION ${EXAMPLES_INSTALL_DIR})
 +endforeach()
+diff --git a/include/depthai/common/Color.hpp b/include/depthai/common/Color.hpp
+index 38e80b236..f649445d2 100644
+--- a/include/depthai/common/Color.hpp
++++ b/include/depthai/common/Color.hpp
+@@ -26,7 +26,7 @@ struct Color {
+     Color(float r, float g, float b, float a) {
+         // r,g,b,a values should be in range [0.0, 1.0]
+         auto check = [](float val) -> float {
+-            if(val < 0.0 || val > 1.0) {
++            if(val < (float) 0.0 || val > (float) 1.0) {
+                 throw std::invalid_argument("Color values should be in range [0.0, 1.0]");
+             }
+             return val;
+diff --git a/src/pipeline/datatype/StreamMessageParser.cpp b/src/pipeline/datatype/StreamMessageParser.cpp
+index e21be4010..d43b55771 100644
+--- a/src/pipeline/datatype/StreamMessageParser.cpp
++++ b/src/pipeline/datatype/StreamMessageParser.cpp
+@@ -243,6 +243,8 @@ std::shared_ptr<ADatatype> StreamMessageParser::parseMessage(streamPacketDesc_t*
+         case DatatypeEnum::TransformData:
+             return parseDatatype<TransformData>(metadataStart, serializedObjectSize, data, fd);
+             break;
++        case DatatypeEnum::ImgAnnotations:
++            break;
+     }
+ 
+     throw std::runtime_error("Bad packet, couldn't parse");
+diff --git a/src/pipeline/node/BenchmarkOut.cpp b/src/pipeline/node/BenchmarkOut.cpp
+index e3816534a..cb909197c 100644
+--- a/src/pipeline/node/BenchmarkOut.cpp
++++ b/src/pipeline/node/BenchmarkOut.cpp
+@@ -27,7 +27,7 @@ void BenchmarkOut::run() {
+ 
+     bool useTiming = (properties.fps > 0);
+ 
+-    auto frameDurationDouble = std::chrono::duration<double>(1.0 / properties.fps);
++    auto frameDurationDouble = std::chrono::duration<double>((double) 1.0 / properties.fps);
+     auto frameDuration = std::chrono::duration_cast<std::chrono::steady_clock::duration>(frameDurationDouble);
+ 
+     auto nextFrameTime = steady_clock::now();
+diff --git a/src/utility/Resources.cpp b/src/utility/Resources.cpp
+index c3f41f19a..9a92e1a1e 100644
+--- a/src/utility/Resources.cpp
++++ b/src/utility/Resources.cpp
+@@ -7,6 +7,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <thread>
++#include <filesystem>
+ 
+ // libarchive
+ #include "archive.h"
+@@ -39,6 +40,8 @@ extern "C" {
+ CMRC_DECLARE(depthai);
+ #endif
+ 
++namespace fs = std::filesystem;
++
+ namespace dai {
+ 
+ TarGzAccessor::TarGzAccessor(const std::vector<std::uint8_t>& tarGzFile) {
+@@ -50,8 +53,7 @@ TarGzAccessor::TarGzAccessor(const std::vector<std::uint8_t>& tarGzFile) {
+     archive_read_support_format_tar(archive);   // Support for tar format
+ 
+     // Open the memory archive
+-    int r = archive_read_open_memory(archive, tarGzFile.data(), tarGzFile.size());
+-    assert(r == ARCHIVE_OK);
++    assert(archive_read_open_memory(archive, tarGzFile.data(), tarGzFile.size()) == ARCHIVE_OK);
+ 
+     // Read through the archive and store all the file contents
+     struct archive_entry* entry;
+@@ -342,38 +344,41 @@ std::vector<std::uint8_t> Resources::getDeviceRVC4Fwp() const {
+ }
+ 
+ std::vector<std::uint8_t> Resources::getDeviceFwp(const std::string& fwPath, const std::string& envPath) const {
+-    std::string pathToFwp;
+-
+-    // Check if pathToMvcmd variable is set
+-    dai::Path finalFwpPath;
+-    if(!pathToFwp.empty()) {
+-        finalFwpPath = pathToFwp;
+-    }
++    std::filesystem::path finalFwpPath;
+ 
++    spdlog::warn("Open specified file: {}", fwPath);
+     // Override if env variable DEPTHAI_DEVICE_KB_FWP is set
+-    dai::Path fwpPathEnv = utility::getEnvAs<std::string>(envPath, "");
++    std::filesystem::path fwpPathEnv = utility::getEnvAs<std::string>(envPath, "");
+     if(!fwpPathEnv.empty()) {
+         finalFwpPath = fwpPathEnv;
+-        spdlog::warn("Overriding device fwp: {}", finalFwpPath);
++	std::cout << "Overriding device fwp:" << finalFwpPath.string() << std::endl;
++    }
++    else {
++        finalFwpPath = @DEPTHAI_DATA_PATH@ + fwPath;
++	std::cout << "Full path fwp:" << finalFwpPath.string() << std::endl;
+     }
++    finalFwpPath = "/pethod/home/depthai-data/" + fwPath;
+ 
+-    // Return binary from file if any of above paths are present
+-    if(!finalFwpPath.empty()) {
+-        // Load binary file at path
+-        std::ifstream stream(finalFwpPath, std::ios::binary);
+-        if(!stream.is_open()) {
+-            // Throw an error
+-            // TODO(themarpe) - Unify exceptions into meaningful groups
+-            throw std::runtime_error(fmt::format("File at path {}{} doesn't exist.", finalFwpPath));
+-        }
+-        // Read the file and return its contents
+-        return std::vector<std::uint8_t>(std::istreambuf_iterator<char>(stream), {});
+-    } else {
+-        // Load from resources
+-        auto fs = cmrc::depthai::get_filesystem();
+-        auto tarXz = fs.open(fwPath);
+-        return {tarXz.begin(), tarXz.end()};
++    // Check if path is empty
++    if(finalFwpPath.empty()) {
++        throw std::runtime_error("Firmware path is empty. Check if {} environment variable is set correctly.");
+     }
++
++    // Load binary file at path
++    std::ifstream stream(finalFwpPath, std::ios::binary);
++    if(!stream.is_open()) {
++        throw std::runtime_error("File at path '{}' doesn't exist or cannot be opened.");
++    }
++
++    // File exists and is open, read its contents
++    std::vector<std::uint8_t> firmware(std::istreambuf_iterator<char>(stream), {});
++
++    // Check if file was empty
++    if(firmware.empty()) {
++        throw std::runtime_error("Firmware file at '{}' exists but is empty.");
++    }
++
++    return firmware;
+ }
+ 
+ Resources& Resources::getInstance() {
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
 index 8de4a92f0..21179beb3 100644
 --- a/tests/CMakeLists.txt
