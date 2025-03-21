@@ -30,6 +30,7 @@
 , neargye-semver
 , backward-cpp
 , pcl
+, python3
 , python312Packages
 , catch2_3
 , xorg
@@ -50,6 +51,12 @@
 }:
 
 let
+  catch2_3WithSharedLibs = catch2_3.overrideAttrs (oldAttrs: {
+    cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
+      "-DBUILD_SHARED_LIBS=ON"
+    ];
+  });
+
   opencv4WithGtk = opencv4.override {
     enableGtk2 = true;  # For GTK2 support
     enableGtk3 = true;  # For GTK3 support
@@ -88,7 +95,6 @@ stdenv.mkDerivation rec {
     ./0013-cmake-Don-t-download-the-test-dependencies.patch
     ./0014-cmake-Install-examples-after-build-WIP.patch
     ./016-resources.patch
-#    ./001-build.patch
   ];
 
   nativeBuildInputs = [
@@ -96,7 +102,6 @@ stdenv.mkDerivation rec {
     clang-tools
     git
     pkg-config
-    catch2_3
   ];
 
   buildInputs = [
@@ -140,22 +145,20 @@ stdenv.mkDerivation rec {
     zlib
     depthai-data
     ws-protocol
+    catch2_3WithSharedLibs
   ];
 
   propagatedBuildInputs = [ pybind11 pybind11-stubgen mypy ];
 
   cmakeFlags = [
-    #"--trace-expand"
-    #(cmakeBool "OPENCV_GENERATE_PKGCONFIG" true)
-    "-DDEPTHAI_BOOTSTRAP_VCPKG=OFF"
-    "-DBUILD_SHARED_LIBS=ON"
-    "-DDEPTHAI_BUILD_EXAMPLES=ON"
-    "-DDEPTHAI_TEST_EXAMPLES=ON"
-    "-DDEPTHAI_PCL_SUPPORT=ON"
-    "-DCMAKE_VERBOSE_MAKEFILE=ON"
-    #"-DDEPTHAI_BUILD_TESTS=ON"
-    #"-DDEPTHAI_BUILD_PYTHON=ON"
-    #"-DDEPTHAI_RESOURCES_OUTPUT_DIR=${datasrc}"
+    #(cmakeBool "DEPTHAI_BOOTSTRAP_VCPKG" false)
+    #(cmakeBool "BUILD_SHARED_LIBS" true)
+    #(cmakeBool "DEPTHAI_BUILD_EXAMPLES" true)
+    #(cmakeBool "DEPTHAI_TEST_EXAMPLES" true)
+    #(cmakeBool "DEPTHAI_PCL_SUPPORT" true)
+    #(cmakeBool "CMAKE_VERBOSE_MAKEFILE" true)
+    #(cmakeBool "DEPTHAI_BUILD_TESTS" true)
+    #(cmakeBool "DEPTHAI_BUILD_PYTHON" true)
   ];
 
   postPatch = ''
@@ -177,6 +180,15 @@ stdenv.mkDerivation rec {
   postFixup = ''
     mkdir -p $out/share/
     mkdir -p $out/lib/
+    mkdir -p $out/lib/${python3.sitePackages}
+
+    export PYTHONPATH="$out/${python3.sitePackages}:$PYTHONPATH"
+    
+    # Copy any additional Python files if they're not already in the right place
+    find $buildDir/depthai/python
+    if [ -d $buildDir/depthai/python ]; then
+       cp -r $buildDir/depthai/python $out/lib/${python3.sitePackages}/
+    fi
    
     # Find all shared libraries in the build directory and copy them to lib directory
     find $buildDir -name "*.so*" -type f -not -path "*/\.*" | while read lib_file; do
