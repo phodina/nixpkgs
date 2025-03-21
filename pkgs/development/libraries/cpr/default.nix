@@ -3,7 +3,7 @@
 , fetchFromGitHub
 , cmake
 , pkg-config
-, openssl_3
+, openssl
 , curl
 , zlib
 , gtest
@@ -29,7 +29,7 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    openssl_3
+    openssl
     zlib
     curl
   ];
