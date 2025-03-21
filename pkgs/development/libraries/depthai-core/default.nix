@@ -50,6 +50,10 @@
 }:
 
 let
+  opencv4WithGtk = opencv4.override {
+    enableGtk2 = true;  # For GTK2 support
+    enableGtk3 = true;  # For GTK3 support
+  };
   inherit (python312Packages)
     mypy
     pybind11
@@ -83,6 +87,7 @@ stdenv.mkDerivation rec {
     ./0012-cmake-Handle-catch2-dependencies-for-tests.patch
     ./0013-cmake-Don-t-download-the-test-dependencies.patch
     ./0014-cmake-Install-examples-after-build-WIP.patch
+    ./016-resources.patch
 #    ./001-build.patch
   ];
 
@@ -100,6 +105,7 @@ stdenv.mkDerivation rec {
     boost186
     libusb1
     libpng
+    opencv4WithGtk
     opencv4
     xorg.libX11
     httplib
@@ -139,6 +145,8 @@ stdenv.mkDerivation rec {
   propagatedBuildInputs = [ pybind11 pybind11-stubgen mypy ];
 
   cmakeFlags = [
+    #"--trace-expand"
+    #(cmakeBool "OPENCV_GENERATE_PKGCONFIG" true)
     "-DDEPTHAI_BOOTSTRAP_VCPKG=OFF"
     "-DBUILD_SHARED_LIBS=ON"
     "-DDEPTHAI_BUILD_EXAMPLES=ON"
