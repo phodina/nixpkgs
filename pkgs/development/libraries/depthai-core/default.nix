@@ -69,7 +69,21 @@ stdenv.mkDerivation rec {
   };
 
   patches = [
-    ./001-build.patch
+    ./0001-CMakeLists.txt-Fix-dependencies.patch
+    ./0002-CMakeLists.txt-Add-embedded-dependencies.patch
+    ./0003-CMakeLists.txt-Link-crypto-library-due-to-OpenSSL-re.patch
+    ./0004-CMakeLists-backward-dependency.patch
+    ./0005-CMakeLists-Do-not-install-3rdparty-source-code.patch
+    ./0006-cmake-Disable-downloaders-for-container-build.patch
+    ./0007-cmake-Sort-out-dependencies-for-depthai.patch
+    ./0008-examples-Don-t-download-dependencies.patch
+    ./0009-Color.hpp-Explicit-specification-for-float-type.patch
+    ./0010-StreamMessageParser.cpp-Add-case-for-DatatypeEnum-Im.patch
+    ./0011-BenchmarkOut.cpp-Explicit-cast-to-double.patch
+    ./0012-cmake-Handle-catch2-dependencies-for-tests.patch
+    ./0013-cmake-Don-t-download-the-test-dependencies.patch
+    ./0014-cmake-Install-examples-after-build-WIP.patch
+#    ./001-build.patch
   ];
 
   nativeBuildInputs = [
@@ -137,12 +151,12 @@ stdenv.mkDerivation rec {
   ];
 
   postPatch = ''
-    if [ -f src/utility/Resources.cpp ]; then
-      #substituteInPlace src/utility/Resources.cpp --replace-fail "DEPTHAI_DATA_PATH" "\"${depthai-data}/share/resources/\""
-      substituteInPlace src/utility/Resources.cpp --replace-fail "@DEPTHAI_DATA_PATH@" "\"/home/pethod/depthai-data/\""
-    else
-      echo "Warning: Firmware file not found, skipping string replacement"
-    fi
+      #substituteInPlace CMakeLists.txt --replace-fail "@NIX_PATH@" "${depthai-data}/share/resources/"
+      substituteInPlace CMakeLists.txt --replace-fail "@NIX_PATH@" "/build/source/build/resources/"
+
+    mkdir -p /build/source/build/resources
+    cp ${depthai-data}/share/resources/* /build/source/build/resources
+    find /build/source/build/resources
 
     # Remove 3rdparty directory
     if [ -d 3rdparty ]; then
@@ -150,7 +164,6 @@ stdenv.mkDerivation rec {
     fi
 
   '';
-
 
   # Add rpath to all executables to find the libraries
   postFixup = ''
