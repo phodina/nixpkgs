@@ -266,6 +266,10 @@ stdenv.mkDerivation rec {
         patchelf --set-rpath "${lib.makeLibraryPath buildInputs}:$out/lib" "$f" || true
       fi
     done
+
+    # Make Python Great again
+    mv $out/lib/depthai.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
+    mv $out/lib/depthai_pybind11_tests.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
   '';
 
   postPatch = ''
