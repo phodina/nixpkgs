@@ -311,6 +311,9 @@ with pkgs;
   };
 
   depthai-core = callPackage ../development/libraries/depthai-core { };
+  hil-lab = callPackage ../development/libraries/hil-framework { };
+  depthai-data = callPackage ../by-name/de/depthai-data { };
+  ws-protocol = callPackage ../development/libraries/ws-protocol { };
 
   dhallDirectoryToNix = callPackage ../build-support/dhall/directory-to-nix.nix { };
 
@@ -1605,8 +1608,6 @@ with pkgs;
       appimage-run-tests = null; /* break boostrap cycle for passthru.tests */
     };
   };
-
-  apriltags = callPackage ../development/libraries/apriltags { };
 
   ArchiSteamFarm = callPackage ../applications/misc/ArchiSteamFarm { };
 
@@ -12653,8 +12654,6 @@ with pkgs;
   xkeyboard_config = xorg.xkeyboardconfig;
 
   xlsx2csv = with python3Packages; toPythonApplication xlsx2csv;
-
-  xlink = callPackage ../development/libraries/xlink { };
 
   zafiro-icons = callPackage ../data/icons/zafiro-icons {
     inherit (plasma5Packages) breeze-icons;

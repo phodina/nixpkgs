@@ -33,6 +33,8 @@ self: super: with self; {
 
   abjad = callPackage ../development/python-modules/abjad { };
 
+  adafruit-blinka = callPackage ../development/python-modules/adafruit-blinka { };
+
   about-time = callPackage ../development/python-modules/about-time { };
 
   absl-py = callPackage ../development/python-modules/absl-py { };
