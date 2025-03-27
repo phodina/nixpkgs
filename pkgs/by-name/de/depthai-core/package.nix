@@ -16,6 +16,7 @@
   httplib,
   openssl,
   protobuf,
+  protobuf_21,
   xtensor,
   cproto,
   eigen,
@@ -49,6 +50,9 @@
   zlib,
   depthai-data,
   ws-protocol,
+# FIXME: Build dependencies first
+#  basalt,
+#  rtabmap,
 }:
 
 let
@@ -168,7 +172,7 @@ stdenv.mkDerivation (finalAttrs: {
     xorg.libX11
     httplib
     openssl
-    protobuf
+    (if stdenv.isDarwin then protobuf_21 else protobuf)
     cproto
     xtensor
     xtl
@@ -199,6 +203,9 @@ stdenv.mkDerivation (finalAttrs: {
     depthai-data
     ws-protocolCompat
     catch2_3WithSharedLibs
+# FIXME: Build dependencies first
+#  basalt,
+#  rtabmap,
   ];
 
   # Limit due to examples when linking examples in parallel requires to much memory
@@ -233,14 +240,17 @@ stdenv.mkDerivation (finalAttrs: {
     mkdir -p $out/lib/
     mkdir -p $out/${python3.sitePackages}
     mkdir -p $out/share/python-examples
-
-    #export PYTHONPATH="$out/${python3.sitePackages}:$PYTHONPATH"
+    name=$(basename $TMP)
 
     # Copy any additional Python files if they're not already in the right place
+    ${if stdenv.isDarwin then ''
+    if [ -d /tmp/$name/source/build/bindings/python ]; then
+       cp -r /tmp/$name/source/build/bindings/python/depthai $out/${python3.sitePackages}/
+    '' else ''
     if [ -d $buildDir/build/source/build/bindings/python ]; then
-       mkdir -p $out/${python3.sitePackages}/depthai_cli
-
        cp -r $buildDir/build/source/build/bindings/python/depthai $out/${python3.sitePackages}/
+    ''}
+       mkdir -p $out/${python3.sitePackages}/depthai_cli
        cp $src/bindings/python/utilities/stress_test.py $out/${python3.sitePackages}/depthai_cli
        cp $src/bindings/python/utilities/cam_test.py $out/${python3.sitePackages}/depthai_cli
        cp $src/bindings/python/depthai_cli/__init__.py $out/${python3.sitePackages}/depthai_cli
@@ -249,19 +259,23 @@ stdenv.mkDerivation (finalAttrs: {
 
     # Copy Python examples
     cp -r $src/examples/python/* $out/share/python-examples
-    #find $src/examples/python -type d -mindepth 1 | while read -r dir; do
-    #  dirName=$(basename "$dir")
-    #  cp -r "$dir" $out/share/python-examples
-    #done
 
     # Find all shared libraries in the build directory and copy them to lib directory
+    ${if stdenv.isDarwin then ''
+    find $buildDir -name "*.dylib*" -type f -not -path "*/\.*" | while read lib_file; do
+    '' else ''
     find $buildDir -name "*.so*" -type f -not -path "*/\.*" | while read lib_file; do
+    ''}
       cp -P "$lib_file" $out/lib/
     done
 
     # Find all shared libraries in the build directory and copy them to lib directory
     # Exclude static libraries (.a files) and only copy shared objects (.so files)
+    ${if stdenv.isDarwin then ''
+    find $buildDir -name "*.dylib*" -type f -not -name "*.a" -not -path "*/\.*" | while read lib_file; do
+    '' else ''
     find $buildDir -name "*.so*" -type f -not -name "*.a" -not -path "*/\.*" | while read lib_file; do
+    ''}
       lib_basename=$(basename "$lib_file")
       if [ ! -e "$out/lib/$lib_basename" ]; then
         cp -P "$lib_file" $out/lib/
@@ -279,7 +293,11 @@ stdenv.mkDerivation (finalAttrs: {
     for f in $out/share/*; do
       if [ -f "$f" ] && [ -x "$f" ]; then
         echo "Patching $f"
+        ${if stdenv.isDarwin then ''
+          install_name_tool -add_rpath $out/lib $f || true
+        '' else ''
         patchelf --set-rpath "${lib.makeLibraryPath finalAttrs.buildInputs}:$out/lib" "$f" || true
+        ''}
       fi
     done
 
@@ -287,26 +305,46 @@ stdenv.mkDerivation (finalAttrs: {
     for f in $out/bin/*; do
       if [ -f "$f" ] && [ -x "$f" ]; then
         echo "Patching $f"
-        patchelf --set-rpath "${lib.makeLibraryPath finalAttrs.buildInputs}:$out/lib" "$f" || true
+        ${if stdenv.isDarwin then ''
+          install_name_tool -add_rpath $out/lib $f || true
+        '' else ''
+          patchelf --set-rpath "${lib.makeLibraryPath finalAttrs.buildInputs}:$out/lib" "$f" || true
+        ''}
       fi
     done
 
     # Make Python Great again
-    mv $out/lib/depthai.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
-    mv $out/lib/depthai_pybind11_tests.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
+    ${if stdenv.isDarwin then ''
+      mv bindings/python/depthai.cpython-312-darwin.so $out/${python3.sitePackages}/
+      install_name_tool -add_rpath $out/lib $out/${python3.sitePackages}/depthai.cpython-312-darwin.so
+
+      mv bindings/python/tests/depthai_pybind11_tests.cpython-312-darwin.so $out/${python3.sitePackages}/
+      install_name_tool -add_rpath $out/lib $out/${python3.sitePackages}/depthai_pybind11_tests.cpython-312-darwin.so 
+    '' else ''
+      mv $out/lib/depthai.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
+      mv $out/lib/depthai_pybind11_tests.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
+    ''}
   '';
 
-  postPatch = ''
+  postPatch = if stdenv.isDarwin then ''
+    name=$(basename $TMP)
+    substituteInPlace CMakeLists.txt --replace-fail "@NIX_PATH@" "/tmp/$name/source/build/resources/"
+ 
+    mkdir -p /tmp/$name/source/build/resources
+     # NOTE: Replace with symlink?
+    cp ${depthai-data}/share/resources/* /tmp/$name/source/build/resources
+
+    # Remove 3rdparty directory
+    rm -rf 3rdparty
+'' else  ''
     substituteInPlace CMakeLists.txt --replace-fail "@NIX_PATH@" "/build/source/build/resources/"
 
     mkdir -p /build/source/build/resources
     # NOTE: Replace with symlink?
     cp ${depthai-data}/share/resources/* /build/source/build/resources
-    find /build/source/build/resources
 
     # Remove 3rdparty directory
     rm -rf 3rdparty
-
   '';
 
   meta = {

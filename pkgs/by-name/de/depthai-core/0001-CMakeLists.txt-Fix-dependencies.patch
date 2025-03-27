@@ -29,7 +29,7 @@ index 2f02763fb..389f5319d 100644
 -        semver::semver
 +        mp4v2
          magic_enum::magic_enum
-+	stdc++fs
++	  
  )
  
  if(DEPTHAI_ENABLE_PROTOBUF)
