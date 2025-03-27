@@ -1,0 +1,103 @@
+diff --git a/thirdparty/basalt-headers/CMakeLists.txt b/thirdparty/basalt-headers/CMakeLists.txt
+index bcb86c5..6ac92ee 100644
+--- a/thirdparty/basalt-headers/CMakeLists.txt
++++ b/thirdparty/basalt-headers/CMakeLists.txt
+@@ -102,7 +102,7 @@ if(NOT TARGET Eigen3::Eigen)
+ else()
+   message(STATUS "Eigen already available")
+ endif()
+-report_dependency_location(Eigen3 Eigen3::Eigen)
++#report_dependency_location(Eigen3 Eigen3::Eigen)
+ 
+ option(BASALT_BUILTIN_SOPHUS "Use builtin Sophus from submodule" ON)
+ if(NOT TARGET Sophus::Sophus)
+@@ -118,7 +118,7 @@ if(NOT TARGET Sophus::Sophus)
+ else()
+   message(STATUS "Sophus already available")
+ endif()
+-report_dependency_location(Sophus Sophus::Sophus)
++#report_dependency_location(Sophus Sophus::Sophus)
+ 
+ option(BASALT_BUILTIN_CEREAL "Use builtin Cereal from submodule" ON)
+ if(NOT TARGET cereal::cereal)
+@@ -132,11 +132,11 @@ if(NOT TARGET cereal::cereal)
+ else()
+   message(STATUS "Cereal already available")
+ endif()
+-report_dependency_location(cereal cereal::cereal)
++#report_dependency_location(cereal cereal::cereal)
+ 
+ add_library(basalt-headers INTERFACE)
+-add_library (basalt::basalt-headers ALIAS basalt-headers)
+-target_link_libraries(basalt-headers INTERFACE Eigen3::Eigen Sophus::Sophus cereal::cereal)
++add_library (basalt-headers ALIAS basalt-headers)
++target_link_libraries(basalt-headers INTERFACE Eigen Sophus cereal)
+ 
+ # Associate target with include directory
+ target_include_directories(basalt-headers INTERFACE
+diff --git a/thirdparty/basalt-headers/test/CMakeLists.txt b/thirdparty/basalt-headers/test/CMakeLists.txt
+index 0485dfd..4819370 100644
+--- a/thirdparty/basalt-headers/test/CMakeLists.txt
++++ b/thirdparty/basalt-headers/test/CMakeLists.txt
+@@ -5,7 +5,7 @@ if(NOT TARGET gtest_main)
+ endif(NOT TARGET gtest_main)
+ 
+ add_library(basalt-headers-test-utils INTERFACE)
+-add_library (basalt::basalt-headers-test-utils ALIAS basalt-headers-test-utils)
++#add_library (basalt-headers-test-utils ALIAS basalt-headers-test-utils)
+ target_link_libraries(basalt-headers-test-utils INTERFACE gtest)
+ 
+ target_include_directories(basalt-headers-test-utils INTERFACE include)
+@@ -21,25 +21,25 @@ target_sources(basalt-headers-test-utils
+ )
+ 
+ add_executable(test_image src/test_image.cpp)
+-target_link_libraries(test_image gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_image gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ add_executable(test_spline src/test_spline.cpp)
+-target_link_libraries(test_spline gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_spline gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ add_executable(test_spline_se3 src/test_spline_se3.cpp)
+-target_link_libraries(test_spline_se3 gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_spline_se3 gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ add_executable(test_camera src/test_camera.cpp)
+-target_link_libraries(test_camera gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_camera gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ add_executable(test_sophus src/test_sophus.cpp)
+-target_link_libraries(test_sophus gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_sophus gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ add_executable(test_preintegration src/test_preintegration.cpp)
+-target_link_libraries(test_preintegration gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_preintegration gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ add_executable(test_ceres_spline_helper src/test_ceres_spline_helper.cpp)
+-target_link_libraries(test_ceres_spline_helper gtest_main basalt::basalt-headers-test-utils basalt::basalt-headers)
++target_link_libraries(test_ceres_spline_helper gtest_main basalt-headers-test-utils basalt-headers)
+ 
+ # benchmarks (currently doesnt work on macOS and with clang)
+ if(NOT APPLE AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+@@ -50,17 +50,7 @@ if(NOT APPLE AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+     add_subdirectory(benchmark EXCLUDE_FROM_ALL)
+ 
+     add_executable(benchmark_camera src/benchmark_camera.cpp)
+-    target_link_libraries(benchmark_camera benchmark::benchmark basalt::basalt-headers)
++    target_link_libraries(benchmark_camera benchmark basalt-headers)
+ endif()
+ 
+-include(GoogleTest)  # for gtest_discover_test
+-
+ enable_testing()
+-
+-gtest_discover_tests(test_image)
+-gtest_discover_tests(test_spline)
+-gtest_discover_tests(test_spline_se3)
+-gtest_discover_tests(test_camera)
+-gtest_discover_tests(test_sophus)
+-gtest_discover_tests(test_preintegration)
+-gtest_discover_tests(test_ceres_spline_helper)
+
