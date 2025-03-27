@@ -2603,6 +2603,10 @@ with pkgs;
     inherit (darwin.apple_sdk.frameworks) Security;
   };
 
+  rtbmap = callPackage ../development/libraries/rtbmap {
+    inherit (libsForQt5) wrapQtAppsHook;
+  };
+
   xmlsort = perlPackages.XMLFilterSort;
 
   mcelog = callPackage ../os-specific/linux/mcelog {

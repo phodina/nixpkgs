@@ -1,0 +1,30 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1ecd3aef..56e2ebf5 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -299,9 +299,6 @@ IF(WITH_QT)
+ 
+     # If Qt is here, the GUI will be built
+     IF(NOT(${VTK_MAJOR_VERSION} LESS 9))
+-      IF(NOT VTK_QT_VERSION)
+-        MESSAGE(FATAL_ERROR "WITH_QT option is ON, but VTK ${VTK_MAJOR_VERSION} has not been built with Qt support, disabling Qt.")
+-      ENDIF()
+ 
+       option(VTK_GLOBAL_WARNING_DISPLAY  "Show VTK warning display on runtime" OFF)
+       IF(NOT VTK_GLOBAL_WARNING_DISPLAY)
+@@ -340,12 +337,12 @@ IF(WITH_QT)
+         IF("${VTK_MAJOR_VERSION}" EQUAL 5)
+             FIND_PACKAGE(QVTK REQUIRED) # only for VTK 5
+         ELSE()
+-            list(FIND PCL_LIBRARIES VTK::GUISupportQt value)
++            list(FIND PCL_LIBRARIES VTK value)
+             IF(value EQUAL -1)
+                 list(FIND PCL_LIBRARIES vtkGUISupportQt value)
+                 IF(value EQUAL -1)
+                     IF(NOT(${VTK_MAJOR_VERSION} LESS 9))
+-                        SET(PCL_LIBRARIES "${PCL_LIBRARIES};VTK::GUISupportQt")
++                        SET(PCL_LIBRARIES "${PCL_LIBRARIES};vtkGUISupportQt")
+                     ELSE()
+                         SET(PCL_LIBRARIES "${PCL_LIBRARIES};vtkGUISupportQt")
+                     ENDIF()
+
