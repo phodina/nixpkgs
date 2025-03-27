@@ -1,0 +1,721 @@
+From b131e8d9316f6d1c6d8a29f49a5589dfedf3ab6f Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Tue, 29 Apr 2025 00:22:23 +0200
+Subject: [PATCH] fix test_jacobian
+
+
+diff --git a/thirdparty/basalt-headers/test/src/test_camera.cpp b/thirdparty/basalt-headers/test/src/test_camera.cpp
+index 1e99b58..2cb13a7 100644
+--- a/thirdparty/basalt-headers/test/src/test_camera.cpp
++++ b/thirdparty/basalt-headers/test/src/test_camera.cpp
+@@ -61,7 +61,7 @@ void testProjectJacobian() {
+           bool success = cam.project(p, res1, &J_p, &J_param);
+ 
+           if (success) {
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_p", J_p,
+                 [&](const Vec4 &x) {
+                   Vec2 res;
+@@ -70,7 +70,7 @@ void testProjectJacobian() {
+                 },
+                 Vec4::Zero());
+ 
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_param", J_param,
+                 [&](const VecN &x) {
+                   Vec2 res;
+@@ -126,7 +126,7 @@ void testProjectJacobian3() {
+           success = cam.project(p, res1, nullptr, &J_param);
+ 
+           if (success) {
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_p", J_p,
+                 [&](const Vec3 &x) {
+                   Vec2 res;
+@@ -135,7 +135,7 @@ void testProjectJacobian3() {
+                 },
+                 Vec3::Zero());
+ 
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_param", J_param,
+                 [&](const VecN &x) {
+                   Vec2 res;
+@@ -215,7 +215,7 @@ void testUnprojectJacobians() {
+             Vec4 res1;
+             cam.unproject(p, res1, &J_p, &J_param);
+ 
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_p", J_p,
+                 [&](const Vec2 &x) {
+                   Vec4 res = Vec4::Zero();
+@@ -224,7 +224,7 @@ void testUnprojectJacobians() {
+                 },
+                 Vec2::Zero());
+ 
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_param", J_param,
+                 [&](const VecN &x) {
+                   Vec4 res = Vec4::Zero();
+@@ -273,7 +273,7 @@ void testUnprojectJacobians3() {
+             cam.unproject(p, res1, &J_p, nullptr);
+             cam.unproject(p, res1, nullptr, &J_param);
+ 
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_p", J_p,
+                 [&](const Vec2 &x) {
+                   Vec3 res = Vec3::Zero();
+@@ -282,7 +282,7 @@ void testUnprojectJacobians3() {
+                 },
+                 Vec2::Zero());
+ 
+-            test_jacobian(
++            test_jacobian_code(
+                 "d_r_d_param", J_param,
+                 [&](const VecN &x) {
+                   Vec3 res = Vec3::Zero();
+@@ -586,7 +586,7 @@ void testStereographicProjectJacobian() {
+       ASSERT_TRUE(res1.isApprox(res2))
+           << "res1 " << res1.transpose() << " res2 " << res2.transpose();
+ 
+-      test_jacobian(
++      test_jacobian_code(
+           "d_r_d_p", J_p, [&](const Vec4 &x) { return CamT::project(p + x); },
+           Vec4::Zero());
+     }
+@@ -635,7 +635,7 @@ void testStereographicUnprojectJacobian() {
+       ASSERT_TRUE(res1.isApprox(res2))
+           << "res1 " << res1.transpose() << " res2 " << res2.transpose();
+ 
+-      test_jacobian(
++      test_jacobian_code(
+           "d_r_d_p", J_p, [&](const Vec2 &x) { return CamT::unproject(p + x); },
+           Vec2::Zero());
+     }
+diff --git a/thirdparty/basalt-headers/test/src/test_ceres_spline_helper.cpp b/thirdparty/basalt-headers/test/src/test_ceres_spline_helper.cpp
+index c4ea187..a54e0c7 100644
+--- a/thirdparty/basalt-headers/test/src/test_ceres_spline_helper.cpp
++++ b/thirdparty/basalt-headers/test/src/test_ceres_spline_helper.cpp
+@@ -145,7 +145,7 @@ void test_ceres_spline_helper_vel_se3() {
+         Eigen::Matrix<double, 1, 1> x0;
+         x0.setZero();
+ 
+-        test_jacobian(
++        test_jacobian_code(
+             "ceres_se3_vel", vel,
+             [&](const Eigen::Matrix<double, 1, 1> &x) {
+               Sophus::SE3d pose_new;
+@@ -192,7 +192,7 @@ void test_ceres_spline_helper_accel_se3() {
+         Eigen::Matrix<double, 1, 1> x0;
+         x0.setZero();
+ 
+-        test_jacobian(
++        test_jacobian_code(
+             "ceres_se3_accel", accel,
+             [&](const Eigen::Matrix<double, 1, 1> &x) {
+               Sophus::Vector6d vel;
+@@ -239,7 +239,7 @@ void test_ceres_spline_helper_jerk_se3() {
+         Eigen::Matrix<double, 1, 1> x0;
+         x0.setZero();
+ 
+-        test_jacobian(
++        test_jacobian_code(
+             "ceres_se3_jerk", jerk,
+             [&](const Eigen::Matrix<double, 1, 1> &x) {
+               Sophus::Vector6d accel;
+@@ -287,7 +287,7 @@ void test_ceres_spline_helper_vel_sim3() {
+         Eigen::Matrix<double, 1, 1> x0;
+         x0.setZero();
+ 
+-        test_jacobian(
++        test_jacobian_code(
+             "ceres_sim3_vel", vel,
+             [&](const Eigen::Matrix<double, 1, 1> &x) {
+               Sophus::Sim3d pose_new;
+@@ -334,7 +334,7 @@ void test_ceres_spline_helper_accel_sim3() {
+         Eigen::Matrix<double, 1, 1> x0;
+         x0.setZero();
+ 
+-        test_jacobian(
++        test_jacobian_code(
+             "ceres_sim3_accel", accel,
+             [&](const Eigen::Matrix<double, 1, 1> &x) {
+               Sophus::Vector7d vel;
+@@ -381,7 +381,7 @@ void test_ceres_spline_helper_jerk_sim3() {
+         Eigen::Matrix<double, 1, 1> x0;
+         x0.setZero();
+ 
+-        test_jacobian(
++        test_jacobian_code(
+             "ceres_sim3_jerk", jerk,
+             [&](const Eigen::Matrix<double, 1, 1> &x) {
+               Sophus::Vector7d accel;
+diff --git a/thirdparty/basalt-headers/test/src/test_image.cpp b/thirdparty/basalt-headers/test/src/test_image.cpp
+index 6ca4733..53bbf64 100644
+--- a/thirdparty/basalt-headers/test/src/test_image.cpp
++++ b/thirdparty/basalt-headers/test/src/test_image.cpp
+@@ -96,7 +96,7 @@ TEST(Image, ImageInterpolateGrad) {
+   Eigen::Vector3d val_grad = img.interpGrad<double>(pd);
+   Eigen::Matrix<double, 1, 2> J_x = val_grad.tail<2>();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_res_d_x", J_x,
+       [&](const Eigen::Vector2d& x) {
+         return Eigen::Matrix<double, 1, 1>(img.interp<double>(pd + x));
+@@ -116,7 +116,7 @@ TEST(Image, ImageInterpolateGradBilinearExact) {
+   Eigen::Vector3d val_grad = img.interpGradBilinearExact<double>(pd);
+   Eigen::Matrix<double, 1, 2> J_x = val_grad.tail<2>();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_res_d_x", J_x,
+       [&](const Eigen::Vector2d& x) {
+         return Eigen::Matrix<double, 1, 1>(img.interp<double>(pd + x));
+@@ -135,7 +135,7 @@ TEST(Image, ImageInterpolateGradCubicSplines) {
+   Eigen::Vector3d val_grad = img.interpGradCubicSplines<double>(pd);
+   Eigen::Matrix<double, 1, 2> J_x = val_grad.tail<2>();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_res_d_x", J_x,
+       [&](const Eigen::Vector2d& x) {
+         return Eigen::Matrix<double, 1, 1>(
+diff --git a/thirdparty/basalt-headers/test/src/test_preintegration.cpp b/thirdparty/basalt-headers/test/src/test_preintegration.cpp
+index 666a3dd..0ad0148 100644
+--- a/thirdparty/basalt-headers/test/src/test_preintegration.cpp
++++ b/thirdparty/basalt-headers/test/src/test_preintegration.cpp
+@@ -146,7 +146,7 @@ TEST(ImuPreintegrationTestCase, PredictTest) {
+     {
+       basalt::PoseVelState<double>::VecN x0;
+       x0.setZero();
+-      test_jacobian(
++      test_jacobian_code(
+           "F_TEST", d_next_d_curr,
+           [&](const basalt::PoseVelState<double>::VecN& x) {
+             basalt::PoseVelState<double> curr_state1 = curr_state;
+@@ -164,7 +164,7 @@ TEST(ImuPreintegrationTestCase, PredictTest) {
+     {
+       Eigen::Vector3d x0;
+       x0.setZero();
+-      test_jacobian(
++      test_jacobian_code(
+           "A_TEST", d_next_d_accel,
+           [&](const Eigen::Vector3d& x) {
+             basalt::ImuData<double> data1 = data;
+@@ -182,7 +182,7 @@ TEST(ImuPreintegrationTestCase, PredictTest) {
+     {
+       Eigen::Vector3d x0;
+       x0.setZero();
+-      test_jacobian(
++      test_jacobian_code(
+           "G_TEST", d_next_d_gyro,
+           [&](const Eigen::Vector3d& x) {
+             basalt::ImuData<double> data1 = data;
+@@ -262,7 +262,7 @@ TEST(ImuPreintegrationTestCase, ResidualTest) {
+   {
+     basalt::PoseVelState<double>::VecN x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_state0", d_res_d_state0,
+         [&](const basalt::PoseVelState<double>::VecN& x) {
+           basalt::PoseVelState<double> state0_new = state0;
+@@ -277,7 +277,7 @@ TEST(ImuPreintegrationTestCase, ResidualTest) {
+   {
+     basalt::PoseVelState<double>::VecN x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_state1", d_res_d_state1,
+         [&](const basalt::PoseVelState<double>::VecN& x) {
+           basalt::PoseVelState<double> state1_new = state1;
+@@ -292,7 +292,7 @@ TEST(ImuPreintegrationTestCase, ResidualTest) {
+   {
+     Sophus::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_bg", d_res_d_bg,
+         [&](const Sophus::Vector3d& x) {
+           return imu_meas.residual(state0, basalt::constants::G, state1, bg + x,
+@@ -304,7 +304,7 @@ TEST(ImuPreintegrationTestCase, ResidualTest) {
+   {
+     Sophus::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_ba", d_res_d_ba,
+         [&](const Sophus::Vector3d& x) {
+           return imu_meas.residual(state0, basalt::constants::G, state1, bg,
+@@ -363,7 +363,7 @@ TEST(ImuPreintegrationTestCase, BiasTest) {
+   {
+     Sophus::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_bg", imu_meas.get_d_state_d_bg(),
+         [&](const Sophus::Vector3d& x) {
+           basalt::IntegratedImuMeasurement<double> imu_meas1(0, bg + x, ba);
+@@ -387,7 +387,7 @@ TEST(ImuPreintegrationTestCase, BiasTest) {
+   {
+     Sophus::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_ba", imu_meas.get_d_state_d_ba(),
+         [&](const Sophus::Vector3d& x) {
+           basalt::IntegratedImuMeasurement<double> imu_meas1(0, bg, ba + x);
+@@ -497,7 +497,7 @@ TEST(ImuPreintegrationTestCase, ResidualBiasTest) {
+   {
+     Sophus::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_ba", d_res_d_ba,
+         [&](const Sophus::Vector3d& x) {
+           basalt::IntegratedImuMeasurement<double> imu_meas1(0, bg_test,
+@@ -522,7 +522,7 @@ TEST(ImuPreintegrationTestCase, ResidualBiasTest) {
+   {
+     Sophus::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_bg", d_res_d_bg,
+         [&](const Sophus::Vector3d& x) {
+           basalt::IntegratedImuMeasurement<double> imu_meas1(0, bg_test + x,
+diff --git a/thirdparty/basalt-headers/test/src/test_sophus.cpp b/thirdparty/basalt-headers/test/src/test_sophus.cpp
+index 7c3066e..b599f5c 100644
+--- a/thirdparty/basalt-headers/test/src/test_sophus.cpp
++++ b/thirdparty/basalt-headers/test/src/test_sophus.cpp
+@@ -48,7 +48,7 @@ TEST(SophusUtilsCase, RightJacobianSO3) {
+   Eigen::Vector3d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "rightJacobianSO3", J_a,
+       [&](const Eigen::Vector3d &x) {
+         return (Sophus::SO3d::exp(phi).inverse() * Sophus::SO3d::exp(phi + x))
+@@ -67,7 +67,7 @@ TEST(SophusUtilsCase, RightJacobianInvSO3) {
+   Eigen::Vector3d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "rightJacobianInvSO3", J_a,
+       [&](const Eigen::Vector3d &x) {
+         return (Sophus::SO3d::exp(phi) * Sophus::SO3d::exp(x)).log();
+@@ -85,7 +85,7 @@ TEST(SophusUtilsCase, LeftJacobianSO3) {
+   Eigen::Vector3d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "leftJacobianSO3", J_a,
+       [&](const Eigen::Vector3d &x) {
+         return (Sophus::SO3d::exp(phi + x) * Sophus::SO3d::exp(phi).inverse())
+@@ -104,7 +104,7 @@ TEST(SophusUtilsCase, LeftJacobianInvSO3) {
+   Eigen::Vector3d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "leftJacobianInvSO3", J_a,
+       [&](const Eigen::Vector3d &x) {
+         return (Sophus::SO3d::exp(x) * Sophus::SO3d::exp(phi)).log();
+@@ -122,7 +122,7 @@ TEST(SophusUtilsCase, RightJacobianSE3Decoupled) {
+   Sophus::Vector6d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "rightJacobianSE3Decoupled", J_a,
+       [&](const Sophus::Vector6d &x) {
+         return Sophus::se3_logd(Sophus::se3_expd(phi).inverse() *
+@@ -141,7 +141,7 @@ TEST(SophusUtilsCase, RightJacobianInvSE3Decoupled) {
+   Sophus::Vector6d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "rightJacobianInvSE3Decoupled", J_a,
+       [&](const Sophus::Vector6d &x) {
+         return Sophus::se3_logd(Sophus::se3_expd(phi) * Sophus::se3_expd(x));
+@@ -158,7 +158,7 @@ TEST(SophusUtilsCase, Adjoint) {
+   Sophus::Vector6d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "Adj", J_a,
+       [&](const Sophus::Vector6d &x) {
+         return Sophus::se3_logd(pose.inverse() * Sophus::se3_expd(x) * pose);
+@@ -181,7 +181,7 @@ TEST(SophusUtilsCase, RotTestSO3) {
+   Eigen::Vector3d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "Rot Test", J_a,
+       [&](const Eigen::Vector3d &x) {
+         return Sophus::SO3d::exp(k * (t1 + x)) * t2;
+@@ -203,7 +203,7 @@ TEST(SophusUtilsCase, incTest) {
+   Sophus::Vector6d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "inc test", J_a,
+       [&](const Sophus::Vector6d &x) {
+         Sophus::SE3d pose1;
+@@ -227,7 +227,7 @@ TEST(SophusUtilsCase, incTest2) {
+   Sophus::Vector6d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "inc test", J_a,
+       [&](const Sophus::Vector6d &x) {
+         Sophus::SE3d pose1;
+@@ -252,7 +252,7 @@ TEST(SophusUtilsCase, SO2Test) {
+   Eigen::Matrix<double, 1, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "inc test", J_a,
+       [&](const Eigen::Matrix<double, 1, 1> &x) {
+         return Sophus::SO2d::exp(x[0]) * phi;
+@@ -274,7 +274,7 @@ TEST(SophusUtilsCase, Se3Test) {
+   Eigen::Matrix<double, 3, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "inc test", J_a,
+       [&](const Eigen::Matrix<double, 3, 1> &x) {
+         return Sophus::SE2d::exp(x) * phi;
+@@ -298,7 +298,7 @@ TEST(SophusUtilsCase, Sim2Test) {
+   Eigen::Matrix<double, 4, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "inc test", J_a,
+       [&](const Eigen::Matrix<double, 4, 1> &x) {
+         return Sophus::Sim2d::exp(x) * phi;
+@@ -321,7 +321,7 @@ TEST(SophusUtilsCase, RxSO2Test) {
+   Eigen::Matrix<double, 2, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "inc test", J_a,
+       [&](const Eigen::Matrix<double, 2, 1> &x) {
+         return Sophus::RxSO2d::exp(x) * phi;
+@@ -340,7 +340,7 @@ TEST(SophusUtilsCase, RightJacobianSim3Decoupled) {
+   Sophus::Vector7d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "rightJacobianSim3Decoupled", J_a,
+       [&](const Sophus::Vector7d &x) {
+         return Sophus::sim3_logd(Sophus::sim3_expd(phi).inverse() *
+@@ -360,7 +360,7 @@ TEST(SophusUtilsCase, RightJacobianInvSim3Decoupled) {
+   Sophus::Vector7d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "rightJacobianInvSim3Decoupled", J_a,
+       [&](const Sophus::Vector7d &x) {
+         return Sophus::sim3_logd(Sophus::sim3_expd(phi) * Sophus::sim3_expd(x));
+@@ -377,7 +377,7 @@ TEST(SophusUtilsCase, AdjointSim3) {
+   Sophus::Vector7d x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "AdjSim3", J_a,
+       [&](const Sophus::Vector7d &x) {
+         return Sophus::sim3_logd(pose.inverse() * Sophus::sim3_expd(x) * pose);
+@@ -410,7 +410,7 @@ TEST(SophusUtilsCase, RelPoseTestRightIncSE3) {
+     Sophus::Vector6d x0;
+     x0.setZero();
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", J_T_w_i,
+         [&](const Sophus::Vector6d &x) {
+           Sophus::SE3d T_w_i_new = T_w_i * Sophus::se3_expd(x);
+@@ -419,7 +419,7 @@ TEST(SophusUtilsCase, RelPoseTestRightIncSE3) {
+         },
+         x0);
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_j", J_T_w_j,
+         [&](const Sophus::Vector6d &x) {
+           Sophus::SE3d T_w_j_new = T_w_j * Sophus::se3_expd(x);
+@@ -451,7 +451,7 @@ TEST(SophusUtilsCase, RelPoseTestLeftIncSE3) {
+     Sophus::Vector6d x0;
+     x0.setZero();
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", J_T_w_i,
+         [&](const Sophus::Vector6d &x) {
+           Sophus::SE3d T_w_i_new = Sophus::se3_expd(x) * T_w_i;
+@@ -460,7 +460,7 @@ TEST(SophusUtilsCase, RelPoseTestLeftIncSE3) {
+         },
+         x0);
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_j", J_T_w_j,
+         [&](const Sophus::Vector6d &x) {
+           Sophus::SE3d T_w_j_new = Sophus::se3_expd(x) * T_w_j;
+@@ -502,7 +502,7 @@ TEST(SophusUtilsCase, RelPoseTestDecoupledLeftIncSE3) {
+     Sophus::Vector6d x0;
+     x0.setZero();
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", J_T_w_i * rr_i,
+         [&](const Sophus::Vector6d &x) {
+           Sophus::SE3d T_w_i_new;
+@@ -513,7 +513,7 @@ TEST(SophusUtilsCase, RelPoseTestDecoupledLeftIncSE3) {
+         },
+         x0);
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_j", J_T_w_j * rr_j,
+         [&](const Sophus::Vector6d &x) {
+           Sophus::SE3d T_w_j_new;
+@@ -546,7 +546,7 @@ TEST(SophusUtilsCase, RelPoseTestRightIncSim3) {
+     Sophus::Vector7d x0;
+     x0.setZero();
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", J_T_w_i,
+         [&](const Sophus::Vector7d &x) {
+           Sophus::Sim3d T_w_i_new = T_w_i * Sophus::sim3_expd(x);
+@@ -555,7 +555,7 @@ TEST(SophusUtilsCase, RelPoseTestRightIncSim3) {
+         },
+         x0);
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_j", J_T_w_j,
+         [&](const Sophus::Vector7d &x) {
+           Sophus::Sim3d T_w_j_new = T_w_j * Sophus::sim3_expd(x);
+diff --git a/thirdparty/basalt-headers/test/src/test_spline.cpp b/thirdparty/basalt-headers/test/src/test_spline.cpp
+index 62c13f4..ef57140 100644
+--- a/thirdparty/basalt-headers/test/src/test_spline.cpp
++++ b/thirdparty/basalt-headers/test/src/test_spline.cpp
+@@ -62,7 +62,7 @@ void testEvaluate(const basalt::RdSpline<DIM, N> &spline, int64_t t_ns) {
+       J_a.diagonal().setConstant(J_spline.d_val_d_knot[i - J_spline.start_idx]);
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const VectorD &x) {
+           basalt::RdSpline<DIM, N> spline1 = spline;
+@@ -83,7 +83,7 @@ void testTimeDeriv(const basalt::RdSpline<DIM, N> &spline, int64_t t_ns) {
+   Eigen::Matrix<double, 1, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_val_d_t", d_val_d_t,
+       [&](const Eigen::Matrix<double, 1, 1> &x) {
+         int64_t inc = x[0] * 1e9;
+@@ -117,7 +117,7 @@ void testEvaluateSo3(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+       J_a = J_spline.d_val_d_knot[i - J_spline.start_idx];
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const VectorD &x) {
+           basalt::So3Spline<N> spline1 = spline;
+@@ -143,7 +143,7 @@ void testVelSo3(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+   Eigen::Matrix<double, 1, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_val_d_t", d_res_d_t,
+       [&](const Eigen::Matrix<double, 1, 1> &x) {
+         int64_t inc = x[0] * 1e9;
+@@ -165,7 +165,7 @@ void testAccelSo3(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+   Eigen::Matrix<double, 1, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_val_d_t", d_res_d_t,
+       [&](const Eigen::Matrix<double, 1, 1> &x) {
+         int64_t inc = x[0] * 1e9;
+@@ -191,7 +191,7 @@ void testJerkSo3(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+   Eigen::Matrix<double, 1, 1> x0;
+   x0.setZero();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_val_d_t", d_res_d_t,
+       [&](const Eigen::Matrix<double, 1, 1> &x) {
+         int64_t inc = x[0] * 1e9;
+@@ -228,7 +228,7 @@ void testEvaluateSo3Vel(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+       J_a = J_spline.d_val_d_knot[i - J_spline.start_idx];
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const VectorD &x) {
+           basalt::So3Spline<N> spline1 = spline;
+@@ -274,7 +274,7 @@ void testEvaluateSo3Accel(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+       J_a = J_vel.d_val_d_knot[i - J_vel.start_idx];
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const VectorD &x) {
+           basalt::So3Spline<N> spline1 = spline;
+@@ -298,7 +298,7 @@ void testEvaluateSo3Accel(const basalt::So3Spline<N> &spline, int64_t t_ns) {
+       J_a = J_accel.d_val_d_knot[i - J_accel.start_idx];
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const VectorD &x) {
+           basalt::So3Spline<N> spline1 = spline;
+@@ -730,7 +730,7 @@ TEST(SplineTest, CrossProductTest) {
+   J_cross =
+       Sophus::SO3d::hat(J_1 * v1) * J_2 - Sophus::SO3d::hat(J_2 * v2) * J_1;
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "cross_prod_test1", J_cross,
+       [&](const Eigen::Vector3d &x) {
+         return (J_1 * (v1 + x)).cross(J_2 * (v2 + x));
+@@ -739,7 +739,7 @@ TEST(SplineTest, CrossProductTest) {
+ 
+   J_cross = -Sophus::SO3d::hat(J_2 * v2) * J_1;
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "cross_prod_test2", J_cross,
+       [&](const Eigen::Vector3d &x) {
+         return (J_1 * (v1 + x)).cross(J_2 * v2);
+@@ -748,7 +748,7 @@ TEST(SplineTest, CrossProductTest) {
+ 
+   J_cross = Sophus::SO3d::hat(J_1 * v1) * J_2;
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "cross_prod_test2", J_cross,
+       [&](const Eigen::Vector3d &x) {
+         return (J_1 * v1).cross(J_2 * (v2 + x));
+diff --git a/thirdparty/basalt-headers/test/src/test_spline_se3.cpp b/thirdparty/basalt-headers/test/src/test_spline_se3.cpp
+index a6943f3..871b47d 100644
+--- a/thirdparty/basalt-headers/test/src/test_spline_se3.cpp
++++ b/thirdparty/basalt-headers/test/src/test_spline_se3.cpp
+@@ -66,7 +66,7 @@ void testGyroRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+       J_a.setZero();
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const Sophus::Vector3d &x) {
+           basalt::Se3Spline<N> s1 = s;
+@@ -84,7 +84,7 @@ void testGyroRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+     std::stringstream ss;
+     ss << "Spline order " << N << " d_gyro_res_d_bias";
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_bias,
+         [&](const Eigen::Matrix<double, 12, 1> &x) {
+           auto b1 = bias;
+@@ -126,7 +126,7 @@ void testAccelRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+       J_a.setZero();
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const Sophus::Vector6d &x) {
+           basalt::Se3Spline<N> s1 = s;
+@@ -144,7 +144,7 @@ void testAccelRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+     std::stringstream ss;
+     ss << "Spline order " << N << " d_accel_res_d_bias";
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_bias,
+         [&](const Eigen::Matrix<double, 9, 1> &x) {
+           auto b1 = bias;
+@@ -161,7 +161,7 @@ void testAccelRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+     std::stringstream ss;
+     ss << "Spline order " << N << " d_accel_res_d_g";
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_g,
+         [&](const Sophus::Vector3d &x) {
+           return s.accelResidual(t_ns, measurement, bias, g + x);
+@@ -194,7 +194,7 @@ void testOrientationRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+     Sophus::Vector3d x0;
+     x0.setZero();
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const Sophus::Vector3d &x_rot) {
+           Sophus::Vector6d x;
+@@ -234,7 +234,7 @@ void testPositionRes(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+     Sophus::Vector3d x0;
+     x0.setZero();
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const Sophus::Vector3d &x_rot) {
+           Sophus::Vector6d x;
+@@ -271,7 +271,7 @@ void testPose(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+       J_a.setZero();
+     }
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         ss.str(), J_a,
+         [&](const Sophus::Vector6d &x) {
+           basalt::Se3Spline<N> s1 = s;
+@@ -293,7 +293,7 @@ void testPose(const basalt::Se3Spline<N> &s, int64_t t_ns) {
+ 
+     s.d_pose_d_t(t_ns, J_a);
+ 
+-    test_jacobian(
++    test_jacobian_code(
+         "J_pose_time", J_a,
+         [&](const Eigen::Matrix<double, 1, 1> &x) {
+           int64_t t_ns_new = t_ns;
+-- 
+2.49.0
+

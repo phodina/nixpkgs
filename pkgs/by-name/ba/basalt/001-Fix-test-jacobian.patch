@@ -1,0 +1,120 @@
+From ae3fa56634ad1f10def74919b08f39fc117bc44b Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Tue, 29 Apr 2025 00:17:50 +0200
+Subject: [PATCH] fix test_jacobian
+
+
+diff --git a/test/src/test_nfr.cpp b/test/src/test_nfr.cpp
+index 5055b90..d430cf6 100644
+--- a/test/src/test_nfr.cpp
++++ b/test/src/test_nfr.cpp
+@@ -34,7 +34,7 @@ TEST(PreIntegrationTestSuite, RelPoseTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", d_res_d_T_w_i,
+         [&](const Sophus::Vector6d& x) {
+           auto T_w_i_new = T_w_i;
+@@ -48,7 +48,7 @@ TEST(PreIntegrationTestSuite, RelPoseTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_j", d_res_d_T_w_j,
+         [&](const Sophus::Vector6d& x) {
+           auto T_w_j_new = T_w_j;
+@@ -71,7 +71,7 @@ TEST(PreIntegrationTestSuite, AbsPositionTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", d_res_d_T_w_i,
+         [&](const Sophus::Vector6d& x) {
+           auto T_w_i_new = T_w_i;
+@@ -97,7 +97,7 @@ TEST(PreIntegrationTestSuite, YawTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", d_res_d_T_w_i,
+         [&](const Sophus::Vector6d& x) {
+           auto T_w_i_new = T_w_i;
+@@ -124,7 +124,7 @@ TEST(PreIntegrationTestSuite, RollPitchTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_T_w_i", d_res_d_T_w_i,
+         [&](const Sophus::Vector6d& x) {
+           auto T_w_i_new = T_w_i;
+diff --git a/test/src/test_patch.cpp b/test/src/test_patch.cpp
+index 42a0d28..e030a81 100644
+--- a/test/src/test_patch.cpp
++++ b/test/src/test_patch.cpp
+@@ -42,7 +42,7 @@ TEST(Patch, ImageInterpolateGrad) {
+   Eigen::Vector3d val_grad = img.interpGrad<double>(pd);
+   Eigen::Matrix<double, 1, 2> J_x = val_grad.tail<2>();
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_res_d_x", J_x,
+       [&](const Eigen::Vector2d& x) {
+         return Eigen::Matrix<double, 1, 1>(img.interp<double>(pd + x));
+@@ -74,7 +74,7 @@ TEST(Patch, PatchSe2Jac) {
+   EXPECT_NEAR(mean, mean2, 1e-8);
+   EXPECT_TRUE(data.isApprox(data2));
+ 
+-  test_jacobian(
++  test_jacobian_code(
+       "d_res_d_se2", J_se2,
+       [&](const Eigen::Vector3d& x) {
+         Sophus::SE2d transform = Sophus::SE2d::exp(x);
+diff --git a/test/src/test_vio.cpp b/test/src/test_vio.cpp
+index 34d8ec9..bee31db 100644
+--- a/test/src/test_vio.cpp
++++ b/test/src/test_vio.cpp
+@@ -327,7 +327,7 @@ TEST(VioTestSuite, RelPoseTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_rel_d_h", d_rel_d_h,
+         [&](const Sophus::Vector6d& x) {
+           Sophus::SE3d T_w_h_new = T_w_i_h;
+@@ -344,7 +344,7 @@ TEST(VioTestSuite, RelPoseTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_rel_d_t", d_rel_d_t,
+         [&](const Sophus::Vector6d& x) {
+           Sophus::SE3d T_w_t_new = T_w_i_t;
+@@ -395,7 +395,7 @@ TEST(VioTestSuite, LinearizePointsTest) {
+   {
+     Sophus::Vector6d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_xi", d_res_d_xi,
+         [&](const Sophus::Vector6d& x) {
+           Eigen::Matrix4d T_t_h_new =
+@@ -412,7 +412,7 @@ TEST(VioTestSuite, LinearizePointsTest) {
+   {
+     Eigen::Vector3d x0;
+     x0.setZero();
+-    test_jacobian(
++    test_jacobian_code(
+         "d_res_d_p", d_res_d_p,
+         [&](const Eigen::Vector3d& x) {
+           basalt::Keypoint kpt_pos_new = kpt_pos;
+-- 
+2.49.0
+
