@@ -208,9 +208,6 @@ stdenv.mkDerivation (finalAttrs: {
 #  rtabmap,
   ];
 
-  # Limit due to examples when linking examples in parallel requires to much memory
-  NIX_BUILD_CORES = 12;
-
   propagatedBuildInputs = [
     numpy
     pybind11
