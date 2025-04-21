@@ -152,6 +152,7 @@ stdenv.mkDerivation (finalAttrs: {
     ./0012-cmake-Handle-catch2-dependencies-for-tests.patch
     ./0013-cmake-Don-t-download-the-test-dependencies.patch
     ./0014-cmake-Install-examples-after-build-WIP.patch
+    ./0015-magic-enum.patch
     ./016-resources.patch
   ];
 
