@@ -14,7 +14,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "tdv";
     repo = "nanorpc";
     rev = "${finalAttrs.version}";
-    hash = "sha256-wxCZdOJfWFB4V1aqGUeFrQPkF3I8r5d3p/kFs0bFq7E=";
+    hash = "sha256-019KSlWnhDQYZIzQp554f9jml0a5UYVzrgbzZwiFSVk=";
   };
 
   nativeBuildInputs = [ cmake ];
