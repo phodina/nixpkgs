@@ -60,6 +60,8 @@
 }:
 
 let
+  arch = builtins.elemAt (builtins.split "-" stdenv.hostPlatform.system) 0;
+
   catch2_3WithSharedLibs = catch2_3.overrideAttrs (oldAttrs: {
     cmakeFlags = (oldAttrs.cmakeFlags or [ ]) ++ [
       "-DBUILD_SHARED_LIBS=ON"
@@ -357,8 +359,8 @@ stdenv.mkDerivation (finalAttrs: {
       mv bindings/python/tests/depthai_pybind11_tests.cpython-312-darwin.so $out/${python3.sitePackages}/
       install_name_tool -add_rpath $out/lib $out/${python3.sitePackages}/depthai_pybind11_tests.cpython-312-darwin.so 
     '' else ''
-      mv $out/lib/depthai.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
-      mv $out/lib/depthai_pybind11_tests.cpython-312-x86_64-linux-gnu.so $out/${python3.sitePackages}/
+      mv $out/lib/depthai.cpython-312-${arch}-linux-gnu.so $out/${python3.sitePackages}/
+      mv $out/lib/depthai_pybind11_tests.cpython-312-${arch}-linux-gnu.so $out/${python3.sitePackages}/
     ''}
   '';
 
