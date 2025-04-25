@@ -8,13 +8,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "nanorpc";
-  version = "1.1.1";
+  version = "1.1.0";
 
   src = fetchFromGitHub {
-    owner = "tdv";
+    owner = "luxonis";
     repo = "nanorpc";
     rev = "${finalAttrs.version}";
-    hash = "sha256-019KSlWnhDQYZIzQp554f9jml0a5UYVzrgbzZwiFSVk=";
+    hash = "sha256-EFwk+O3HUgGTP8IGGJcbhf0D22WoqQm80iWbphOO6aQ=";
   };
 
   nativeBuildInputs = [ cmake ];
