@@ -2,6 +2,7 @@
 , stdenv
 , fetchFromGitLab
 , cmake
+, doxygen
 , apriltag
 , pkg-config
 , eigen
@@ -44,20 +45,20 @@ stdenv.mkDerivation (finalAttrs: {
   patches = [
     ./001-Fix-test-jacobian.patch
     ./002-fix-basalt-headers.patch
+    #./003-cmake-Add-option-to-enable-build-of-third-party-depe.patch
+    #./004-cmake-use-system-libs.patch
+    #./005-apriltag-use-system.patch
   ];
-
-# NOTE: Keep them just to build properly, then start removing them
-#  postPatch = ''
-#    rm  -r thirdparty/{apriltag,ros,CLI11,opengv,Pangolin,magic_enum,json}
-#'';
 
   nativeBuildInputs = [
     cmake
     pkg-config
+    doxygen
     git
   ];
 
   buildInputs = [
+    apriltag
     eigen
     opencv4
     tbb
@@ -82,13 +83,15 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   cmakeFlags = [
-    (lib.cmakeBool "BUILD_TESTS" false)
     (lib.cmakeBool "BUILD_EXAMPLES" true)
+    (lib.cmakeBool "BUILD_THIRD_PARTY" false)
     #(lib.cmakeFeature "EIGEN3_INCLUDE_DIR" "${eigen}/include/eigen3")
-    #(lib.cmakeFeature "CMAKE_INCLUDE_PATH" "${eigen}/include/eigen3:${eigen}/include:${sophus}/include:$src/include:$src/include/basalt/utils")
+    (lib.cmakeFeature "CMAKE_INCLUDE_PATH" "${eigen}/include/eigen3:${eigen}/include:${sophus}/include:$src/include:$src/include/basalt/utils")
   ];
 
   postPatch = ''
+    #rm  -r thirdparty/{apriltag,ros,CLI11,opengv,Pangolin,magic_enum,json}
+
     # Modify CMakeLists.txt to add include directories
     sed -i '1i \
 # Explicitly set include directories\

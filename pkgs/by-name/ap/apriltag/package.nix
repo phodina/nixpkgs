@@ -17,6 +17,10 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "apriltags";
   version = "3.4.3";
 
+  patches = [
+    ./001-cmake-install.patch
+  ];
+
   src = fetchFromGitHub {
     owner = "AprilRobotics";
     repo = "AprilTags";

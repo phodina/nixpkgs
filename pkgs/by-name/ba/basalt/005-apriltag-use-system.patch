@@ -1,0 +1,22 @@
+From e6c2f9fd6cb1675759da91730563c578d7b2fb2a Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Tue, 29 Apr 2025 12:41:00 +0200
+Subject: [PATCH] apriltag: use system library headers
+
+
+diff --git a/src/calibration/calibraiton_helper.cpp b/src/calibration/calibraiton_helper.cpp
+index 8861c38..0851728 100644
+--- a/src/calibration/calibraiton_helper.cpp
++++ b/src/calibration/calibraiton_helper.cpp
+@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+ #include <basalt/calibration/calibration_helper.h>
+ 
+-#include <basalt/utils/apriltag.h>
++#include <apriltag.h>
+ 
+ #include <tbb/parallel_for.h>
+ 
+-- 
+2.49.0
+

@@ -1,0 +1,15 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4806fde..f3db4e9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -115,7 +115,7 @@ set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+ set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+ set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+ set(targets_export_name "${PROJECT_NAME}Targets")
+-set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake")
++set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+ 
+ # Include module with fuction 'write_basic_package_version_file'
+ include(CMakePackageConfigHelpers)
+
+

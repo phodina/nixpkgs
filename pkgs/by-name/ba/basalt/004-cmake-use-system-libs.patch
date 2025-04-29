@@ -1,0 +1,29 @@
+From 9fec2b8a8cfca6d79991b397c5b5f205685466db Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Tue, 29 Apr 2025 10:55:36 +0200
+Subject: [PATCH] cmake: use system libs
+
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 50bdebf..e31a24c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -396,9 +396,13 @@ target_sources(basalt
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/vi_estimator/vio_estimator.cpp
+ )
+ 
++find_package(apriltag REQUIRED)
++find_package(magic_enum REQUIRED)
++find_package(nlohmann_json REQUIRED)
++
+ target_link_libraries(basalt
+   PUBLIC ${STD_CXX_FS} basalt::opencv basalt::basalt-headers TBB::tbb
+-  PRIVATE basalt::magic_enum rosbag apriltag opengv nlohmann::json fmt::fmt)
++  PRIVATE rosbag opengv fmt)
+ target_include_directories(basalt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ target_compile_definitions(basalt PUBLIC ${BASALT_COMPILE_DEFINITIONS})
+ #target_compile_definitions(basalt PUBLIC BASALT_DISABLE_ASSERTS)
+-- 
+2.49.0
+
+
