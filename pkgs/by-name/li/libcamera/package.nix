@@ -19,20 +19,22 @@
   systemd, # for libudev
   withTracing ? lib.meta.availableOn stdenv.hostPlatform lttng-ust,
   lttng-ust, # withTracing
-  withQcam ? false,
+  withQcam ? true,
   qt6, # withQcam
   libtiff, # withQcam
 }:
 
 stdenv.mkDerivation rec {
   pname = "libcamera";
-  version = "0.4.0";
+  version = "0.5.0";
 
   src = fetchgit {
     url = "https://git.libcamera.org/libcamera/libcamera.git";
     rev = "v${version}";
-    hash = "sha256-m55SojGt5v5AEatBZiVqQA3xP9eeRWqHa+C3JsTiErQ=";
+    hash = "sha256-zlMjeLlEeigzisVr7kWVrTI5gRbpJb2pZvqXNdErITQ=";
   };
+
+  patches = [ ./0001-add-thermal-support.patch ];
 
   outputs = [
     "out"

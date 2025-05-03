@@ -1,0 +1,685 @@
+From d41f81d549e469a40c5205e4a4b32e8386885d31 Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Sat, 3 May 2025 19:51:13 +0200
+Subject: [PATCH] handle thermal uvc pipeline
+
+
+diff --git a/meson.build b/meson.build
+index 9ba5e2ca..48e1414e 100644
+--- a/meson.build
++++ b/meson.build
+@@ -218,6 +218,7 @@ pipelines_support = {
+     'rpi/pisp':     arch_arm,
+     'rpi/vc4':      arch_arm,
+     'simple':       ['any'],
++    'thermal':      ['any'],
+     'uvcvideo':     ['any'],
+     'vimc':         ['test'],
+     'virtual':      ['test'],
+diff --git a/src/libcamera/pipeline/thermal/meson.build b/src/libcamera/pipeline/thermal/meson.build
+new file mode 100644
+index 00000000..c9b8b7f9
+--- /dev/null
++++ b/src/libcamera/pipeline/thermal/meson.build
+@@ -0,0 +1,3 @@
++libcamera_internal_sources += files([
++    'thermal.cpp',
++])
+diff --git a/src/libcamera/pipeline/thermal/thermal.cpp b/src/libcamera/pipeline/thermal/thermal.cpp
+new file mode 100644
+index 00000000..b533461a
+--- /dev/null
++++ b/src/libcamera/pipeline/thermal/thermal.cpp
+@@ -0,0 +1,535 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++/*
++ * Copyright (C) 2023, Thermal Camera Pipeline
++ *
++ * Thermal camera pipeline handler for Realtek 0bda:5830 USB Camera
++ */
++
++#include <algorithm>
++#include <fstream>
++#include <iostream>
++#include <memory>
++#include <vector>
++#include <sys/mman.h>
++
++#include <libcamera/base/log.h>
++
++#include <libcamera/camera.h>
++#include <libcamera/framebuffer.h>
++#include <libcamera/request.h>
++#include <libcamera/stream.h>
++
++#include "libcamera/internal/camera.h"
++#include "libcamera/internal/device_enumerator.h"
++#include "libcamera/internal/framebuffer.h"
++#include "libcamera/internal/mapped_framebuffer.h"
++#include "libcamera/internal/media_device.h"
++#include "libcamera/internal/pipeline_handler.h"
++#include "libcamera/internal/v4l2_videodevice.h"
++
++/* Include the UVC pipeline handler header */
++#include "../uvcvideo/uvcvideo.h"
++
++namespace libcamera {
++
++LOG_DEFINE_CATEGORY(Thermal)
++
++class ThermalUVCCameraData : public UVCCameraData
++{
++public:
++    ThermalUVCCameraData(PipelineHandler *pipe)
++        : UVCCameraData(pipe)
++    {
++    }
++
++    int init(MediaDevice *media)
++    {
++        int ret = UVCCameraData::init(media);
++        if (ret)
++            return ret;
++
++        /* Connect our thermal processing method to the buffer ready signal */
++        if (video_) {
++            video_->bufferReady.disconnect(static_cast<UVCCameraData *>(this), &UVCCameraData::imageBufferReady);
++            video_->bufferReady.connect(this, &ThermalUVCCameraData::processThermalBuffer);
++        }
++
++        return 0;
++    }
++
++    void processThermalBuffer(FrameBuffer *buffer)
++    {
++        /* Check if this is the Realtek USB Camera (0bda:5830) */
++        if (id().find("0bda:5830") != std::string::npos) {
++            LOG(Thermal, Debug) << "Processing thermal camera frame";
++            
++            /* Map the buffer to access its data */
++            MappedFrameBuffer mappedBuffer(buffer, MappedFrameBuffer::MapFlag::Read);
++            if (!mappedBuffer.isValid()) {
++                LOG(Thermal, Error) << "Failed to map buffer";
++                imageBufferReady(buffer);
++                return;
++            }
++
++            /* Get the stream configuration for dimensions */
++            const StreamConfiguration &cfg = stream_.configuration();
++            unsigned int width = cfg.size.width;
++            unsigned int height = cfg.size.height;
++            
++            /* The frame contains two parts:
++             * - Top half: Image data (monochrome visual image)
++             * - Bottom half: Temperature data
++             */
++            
++            /* Process only if we have enough data */
++            if (width == 0 || height == 0) {
++                LOG(Thermal, Error) << "Invalid frame dimensions: " << width << "x" << height;
++                imageBufferReady(buffer);
++                return;
++            }
++            
++            /* Calculate the center pixel position */
++            unsigned int centerX = width / 2;
++            unsigned int centerY = height / 2;
++            
++            /* Split the frame into image and temperature data */
++            /* The temperature data is in the bottom half of the frame */
++            unsigned int halfHeight = height / 2;
++            
++            /* Get the temperature data for the center pixel */
++            /* Each pixel has 2 bytes (hi, lo) */
++            const uint8_t *data = mappedBuffer.planes()[0].data();
++            size_t bufferSize = mappedBuffer.planes()[0].size_bytes();
++            
++            /* Check if the buffer is large enough to contain both image and thermal data */
++            size_t expectedSize = width * height * 2; // 2 bytes per pixel for the entire frame
++            if (bufferSize < expectedSize) {
++                LOG(Thermal, Warning) << "Buffer size (" << bufferSize << ") smaller than expected (" 
++                                     << expectedSize << "). Adjusting processing.";
++                /* Adjust halfHeight to ensure we stay within buffer bounds */
++                halfHeight = bufferSize / (width * 2) / 2;
++                if (halfHeight == 0) {
++                    LOG(Thermal, Error) << "Buffer too small for thermal processing";
++                    imageBufferReady(buffer);
++                    return;
++                }
++            }
++            
++            /* Calculate the offset to the temperature data for the center pixel */
++            /* First, skip to the bottom half of the frame */
++            size_t tempDataOffset = width * halfHeight * 2; // 2 bytes per pixel
++            
++            /* Ensure we don't exceed buffer size */
++            if (tempDataOffset >= bufferSize) {
++                LOG(Thermal, Error) << "Buffer too small for thermal data";
++                imageBufferReady(buffer);
++                return;
++            }
++            
++            /* Then, go to the center pixel in the temperature data */
++            size_t centerOffset = (centerY % halfHeight) * width + centerX;
++            if (tempDataOffset + (centerOffset * 2) + 1 >= bufferSize) {
++                LOG(Thermal, Error) << "Buffer too small for center thermal pixel";
++                imageBufferReady(buffer);
++                return;
++            }
++            
++            tempDataOffset += centerOffset * 2;
++            
++            /* Extract the bytes */
++            uint8_t lo = data[tempDataOffset];
++            uint8_t hi = data[tempDataOffset + 1];
++            
++            /* Try different interpretations of the 16-bit value */
++            uint16_t rawtemp_le = lo | (hi << 8);  // Little-endian read
++            uint16_t rawtemp_be = (hi << 8) | lo;  // Big-endian read
++            
++            /* Print raw bytes for reference */
++            std::cout << "\n===== THERMAL CAMERA TEMPERATURE CALCULATION OPTIONS =====" << std::endl;
++            std::cout << "Raw bytes: lo=" << (int)lo << ", hi=" << (int)hi << std::endl;
++            
++            /* Print raw values in different byte orders */
++            std::cout << "\n--- Raw Values ---" << std::endl;
++            std::cout << "1. Little-endian (lo | (hi << 8)): " << rawtemp_le << std::endl;
++            std::cout << "2. Big-endian ((hi << 8) | lo): " << rawtemp_be << std::endl;
++            
++            /* Calculate and print temperatures using different formulas */
++            std::cout << "\n--- Temperature Calculations (Little-Endian) ---" << std::endl;
++            std::cout << "A. Original formula ((raw/64.0)-273.15): " 
++                      << (rawtemp_le / 64.0f) - 273.15f << " °C" << std::endl;
++            std::cout << "B. Direct Celsius/10 (raw/10.0): " 
++                      << rawtemp_le / 10.0f << " °C" << std::endl;
++            std::cout << "C. Direct Celsius/100 (raw/100.0): " 
++                      << rawtemp_le / 100.0f << " °C" << std::endl;
++            std::cout << "D. Direct Celsius/1000 (raw/1000.0): " 
++                      << rawtemp_le / 1000.0f << " °C" << std::endl;
++            
++            std::cout << "\n--- Temperature Calculations (Big-Endian) ---" << std::endl;
++            std::cout << "E. Original formula ((raw/64.0)-273.15): " 
++                      << (rawtemp_be / 64.0f) - 273.15f << " °C" << std::endl;
++            std::cout << "F. Direct Celsius/10 (raw/10.0): " 
++                      << rawtemp_be / 10.0f << " °C" << std::endl;
++            std::cout << "G. Direct Celsius/100 (raw/100.0): " 
++                      << rawtemp_be / 100.0f << " °C" << std::endl;
++            std::cout << "H. Direct Celsius/1000 (raw/1000.0): " 
++                      << rawtemp_be / 1000.0f << " °C" << std::endl;
++            
++            /* Additional variants */
++            std::cout << "\n--- Additional Variants ---" << std::endl;
++            
++            /* Signed interpretation (if MSB is set, value is negative) */
++            int16_t signed_le = static_cast<int16_t>(rawtemp_le);
++            int16_t signed_be = static_cast<int16_t>(rawtemp_be);
++            std::cout << "I. Signed Little-Endian/100: " 
++                      << signed_le / 100.0f << " °C" << std::endl;
++            std::cout << "J. Signed Big-Endian/100: " 
++                      << signed_be / 100.0f << " °C" << std::endl;
++            
++            /* Kelvin interpretations */
++            std::cout << "K. Little-Endian as Kelvin/100 - 273.15: " 
++                      << (rawtemp_le / 100.0f) - 273.15f << " °C" << std::endl;
++            std::cout << "L. Big-Endian as Kelvin/100 - 273.15: " 
++                      << (rawtemp_be / 100.0f) - 273.15f << " °C" << std::endl;
++            
++            std::cout << "=================================================\n" << std::endl;
++            
++            /* Use the big-endian direct Celsius interpretation by default */
++            /* This can be changed based on which variant gives the most reasonable results */
++            // uint16_t rawtemp = rawtemp_be;
++            float temp = rawtemp_be / 1000.0f;  // Option H
++            
++            /* Log the temperature */
++            std::cout << "Thermal Camera Center Temperature: " << temp << " °C" << std::endl;
++            LOG(Thermal, Info) << "Center Temperature: " << temp << " °C";
++            
++            /* Find the maximum temperature in the frame */
++            float maxTemp = -273.15f;
++            unsigned int maxX = 0, maxY = 0;
++            
++            /* Find the minimum temperature in the frame */
++            float minTemp = 1000.0f;
++            unsigned int minX = 0, minY = 0;
++            
++            /* Calculate average temperature */
++            float sumTemp = 0.0f;
++            unsigned int pixelCount = 0;
++            
++            /* Scan the temperature data */
++            for (unsigned int y = 0; y < halfHeight; y++) {
++                for (unsigned int x = 0; x < width; x++) {
++                    /* Calculate the offset to the temperature data for this pixel */
++                    size_t offset = width * halfHeight * 2 + (y * width + x) * 2;
++                    
++                    /* Make sure we don't go out of bounds */
++                    if (offset + 1 >= bufferSize)
++                        continue;
++                    
++                    /* Extract the bytes */
++                    uint8_t pixelLo = data[offset];
++                    uint8_t pixelHi = data[offset + 1];
++                    
++                    /* Calculate temperature using the selected interpretation */
++                    /* Change this calculation to match the option you choose from the logged variants */
++                    uint16_t pixelRawTemp = (pixelHi << 8) | pixelLo;  // Big-endian read
++                    float pixelTemp = pixelRawTemp / 1000.0f;  // Option H - Direct Celsius/1000
++                    
++                    /* Print raw values for min/max pixels */
++                    if (pixelTemp > maxTemp && maxTemp == -273.15f) {
++                        std::cout << "Max Temp Pixel Raw Value: " << pixelRawTemp 
++                                  << " (lo=" << (int)pixelLo << ", hi=" << (int)pixelHi << ")" << std::endl;
++                    }
++                    if (pixelTemp < minTemp && minTemp == 1000.0f) {
++                        std::cout << "Min Temp Pixel Raw Value: " << pixelRawTemp 
++                                  << " (lo=" << (int)pixelLo << ", hi=" << (int)pixelHi << ")" << std::endl;
++                    }
++                    
++                    /* Update max temperature */
++                    if (pixelTemp > maxTemp) {
++                        maxTemp = pixelTemp;
++                        maxX = x;
++                        maxY = y;
++                    }
++                    
++                    /* Update min temperature */
++                    if (pixelTemp < minTemp) {
++                        minTemp = pixelTemp;
++                        minX = x;
++                        minY = y;
++                    }
++                    
++                    /* Update sum for average */
++                    sumTemp += pixelTemp;
++                    pixelCount++;
++                }
++            }
++            
++            /* Calculate average temperature */
++            float avgTemp = (pixelCount > 0) ? (sumTemp / pixelCount) : 0.0f;
++            
++            /* Log the temperature statistics */
++            std::cout << "Thermal Camera Statistics:" << std::endl;
++            std::cout << "  Max Temperature: " << maxTemp << " °C at (" << maxX << ", " << maxY << ")" << std::endl;
++            std::cout << "  Min Temperature: " << minTemp << " °C at (" << minX << ", " << minY << ")" << std::endl;
++            std::cout << "  Avg Temperature: " << avgTemp << " °C" << std::endl;
++            
++            LOG(Thermal, Info) << "Max Temperature: " << maxTemp << " °C at (" << maxX << ", " << maxY << ")";
++            LOG(Thermal, Info) << "Min Temperature: " << minTemp << " °C at (" << minX << ", " << minY << ")";
++            LOG(Thermal, Info) << "Avg Temperature: " << avgTemp << " °C";
++        }
++
++        /* Call the original method to complete the request */
++        imageBufferReady(buffer);
++    }
++};
++
++/* Custom configuration class for thermal cameras */
++class ThermalCameraConfiguration : public UVCCameraConfiguration
++{
++public:
++    ThermalCameraConfiguration(UVCCameraData *data)
++        : UVCCameraConfiguration(data), heightAdjusted_(false)
++    {
++    }
++
++    Status validate() override
++    {
++        Status status = UVCCameraConfiguration::validate();
++        if (status == Invalid)
++            return Invalid;
++
++        /* If we have a valid configuration, adjust it for thermal camera */
++        if (!config_.empty() && !heightAdjusted_) {
++            StreamConfiguration &cfg = config_[0];
++            
++            /* Store the original height */
++            Size originalSize = cfg.size;
++            
++            /* Adjust the size to only include the top half (image part) */
++            cfg.size.height = originalSize.height / 2;
++            
++            LOG(Thermal, Info) << "Adjusted thermal camera configuration: " 
++                              << originalSize.width << "x" << originalSize.height 
++                              << " -> " << cfg.size.width << "x" << cfg.size.height;
++            
++            /* Mark as adjusted */
++            if (status != Adjusted)
++                status = Adjusted;
++                
++            /* Set flag to prevent multiple adjustments */
++            heightAdjusted_ = true;
++        }
++
++        return status;
++    }
++
++private:
++    bool heightAdjusted_; /* Flag to track if height has been adjusted */
++};
++
++class PipelineHandlerThermal : public PipelineHandlerUVC
++{
++public:
++    PipelineHandlerThermal(CameraManager *manager)
++        : PipelineHandlerUVC(manager)
++    {
++    }
++    
++    std::unique_ptr<CameraConfiguration> generateConfiguration(Camera *camera,
++                                                              Span<const StreamRole> roles) override
++    {
++        ThermalUVCCameraData *data = static_cast<ThermalUVCCameraData *>(cameraData(camera));
++        
++        /* Create our custom configuration that will crop the thermal data */
++        std::unique_ptr<CameraConfiguration> config =
++            std::make_unique<ThermalCameraConfiguration>(data);
++            
++        if (roles.empty())
++            return config;
++            
++        StreamFormats formats(data->formats_);
++        StreamConfiguration cfg(formats);
++        
++        cfg.pixelFormat = formats.pixelformats().front();
++        cfg.size = formats.sizes(cfg.pixelFormat).back();
++        cfg.bufferCount = 4;
++        
++        config->addConfiguration(cfg);
++        config->validate();
++        
++        return config;
++    }
++
++    bool match(DeviceEnumerator *enumerator) override
++    {
++        MediaDevice *media;
++        DeviceMatch dm("uvcvideo");
++
++        media = acquireMediaDevice(enumerator, dm);
++        if (!media)
++            return false;
++
++        /* Check if this is a Realtek USB Camera (0bda:5830) */
++        std::string deviceNode = media->deviceNode();
++        std::string deviceNum = deviceNode.substr(deviceNode.find_last_of('/') + 1);
++        std::string sysfsPath = "/sys/class/video4linux/" + deviceNum + "/device/";
++        std::string vendorPath = sysfsPath + "../idVendor";
++        std::string productPath = sysfsPath + "../idProduct";
++        
++        std::ifstream vendorFile(vendorPath);
++        std::ifstream productFile(productPath);
++        
++        if (vendorFile.is_open() && productFile.is_open()) {
++            std::string vendor, product;
++            std::getline(vendorFile, vendor);
++            std::getline(productFile, product);
++            
++            if (vendor == "0bda" && product == "5830") {
++                LOG(Thermal, Info) << "Detected Realtek Thermal Camera (0bda:5830)";
++                std::cout << "Detected Realtek Semiconductor Corp. USB Camera (0bda:5830)" << std::endl;
++            }
++        }
++
++        /* Create our custom camera data for thermal processing */
++        std::unique_ptr<ThermalUVCCameraData> data = std::make_unique<ThermalUVCCameraData>(this);
++
++        if (data->init(media))
++            return false;
++
++        /* Create and register the camera */
++        std::string id = data->id();
++        std::set<Stream *> streams{ &data->stream_ };
++        std::shared_ptr<Camera> camera =
++            Camera::create(std::move(data), id, streams);
++        registerCamera(std::move(camera));
++
++        /* Enable hot-unplug notifications */
++        hotplugMediaDevice(media);
++
++        return true;
++    }
++
++    int configure(Camera *camera, CameraConfiguration *config) override
++    {
++        ThermalUVCCameraData *data = static_cast<ThermalUVCCameraData *>(cameraData(camera));
++        StreamConfiguration &cfg = config->at(0);
++        
++        /* Store the original configuration height for thermal data processing */
++        Size originalSize = cfg.size;
++        originalSize.height *= 2; // Double the height to include thermal data
++        
++        LOG(Thermal, Info) << "Configuring thermal camera: " 
++                          << "Display size: " << cfg.size.width << "x" << cfg.size.height
++                          << ", Full frame size: " << originalSize.width << "x" << originalSize.height;
++        
++        /* Create a V4L2 format for the full frame (including thermal data) */
++        V4L2DeviceFormat format;
++        format.fourcc = data->video_->toV4L2PixelFormat(cfg.pixelFormat);
++        format.size = originalSize; // Use the full frame size
++        
++        /* Set the format on the device */
++        int ret = data->video_->setFormat(&format);
++        if (ret)
++            return ret;
++        
++        /* Verify the format was set correctly */
++        if (format.size != originalSize ||
++            format.fourcc != data->video_->toV4L2PixelFormat(cfg.pixelFormat))
++            return -EINVAL;
++        
++        /* Set the stream in the configuration */
++        cfg.setStream(&data->stream_);
++        
++        /* Update the frame size to account for the full buffer size */
++        cfg.frameSize = format.planes[0].size;
++        
++        return 0;
++    }
++    
++    int exportFrameBuffers(Camera *camera, Stream *stream,
++                          std::vector<std::unique_ptr<FrameBuffer>> *buffers) override
++    {
++        ThermalUVCCameraData *data = static_cast<ThermalUVCCameraData *>(cameraData(camera));
++        unsigned int count = stream->configuration().bufferCount;
++        
++        /* Export the buffers from the video device */
++        return data->video_->exportBuffers(count, buffers);
++    }
++    
++    int start(Camera *camera, [[maybe_unused]] const ControlList *controls) override
++    {
++        ThermalUVCCameraData *data = static_cast<ThermalUVCCameraData *>(cameraData(camera));
++        unsigned int count = data->stream_.configuration().bufferCount;
++        
++        LOG(Thermal, Info) << "Starting thermal camera with " << count << " buffers";
++        
++        /* Import the buffers into the video device */
++        int ret = data->video_->importBuffers(count);
++        if (ret < 0) {
++            LOG(Thermal, Error) << "Failed to import buffers: " << ret;
++            return ret;
++        }
++        
++        /* Start the video stream */
++        ret = data->video_->streamOn();
++        if (ret < 0) {
++            LOG(Thermal, Error) << "Failed to start stream: " << ret;
++            data->video_->releaseBuffers();
++            return ret;
++        }
++        
++        LOG(Thermal, Info) << "Thermal camera started successfully";
++        return 0;
++    }
++    
++    void stopDevice(Camera *camera) override
++    {
++        ThermalUVCCameraData *data = static_cast<ThermalUVCCameraData *>(cameraData(camera));
++        
++        LOG(Thermal, Info) << "Stopping thermal camera";
++        
++        /* Stop the video stream */
++        data->video_->streamOff();
++        
++        /* Release the buffers */
++        data->video_->releaseBuffers();
++        
++        LOG(Thermal, Info) << "Thermal camera stopped";
++    }
++    
++    int queueRequestDevice(Camera *camera, Request *request) override
++    {
++        ThermalUVCCameraData *data = static_cast<ThermalUVCCameraData *>(cameraData(camera));
++        FrameBuffer *buffer = request->findBuffer(&data->stream_);
++        if (!buffer) {
++            LOG(Thermal, Error) << "Attempt to queue request with invalid stream";
++            return -ENOENT;
++        }
++        
++        /* Process any controls in the request */
++        int ret = processControls(data, request);
++        if (ret < 0)
++            return ret;
++        
++        /* Queue the buffer to the video device */
++        ret = data->video_->queueBuffer(buffer);
++        if (ret < 0) {
++            LOG(Thermal, Error) << "Failed to queue buffer: " << ret;
++            return ret;
++        }
++        
++        return 0;
++    }
++
++    UVCCameraData *cameraData(Camera *camera)
++    {
++        return static_cast<ThermalUVCCameraData *>(camera->_d());
++    }
++};
++
++/*
++ * Register the thermal pipeline handler with a high priority (lower number)
++ * to ensure it runs before the UVC pipeline handler.
++ */
++REGISTER_PIPELINE_HANDLER(PipelineHandlerThermal, "thermal")
++
++} /* namespace libcamera */
+diff --git a/src/libcamera/pipeline/uvcvideo/uvcvideo.h b/src/libcamera/pipeline/uvcvideo/uvcvideo.h
+new file mode 100644
+index 00000000..2e9632ec
+--- /dev/null
++++ b/src/libcamera/pipeline/uvcvideo/uvcvideo.h
+@@ -0,0 +1,108 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++/*
++ * Copyright (C) 2019, Google Inc.
++ *
++ * Pipeline handler for uvcvideo devices
++ */
++
++#pragma once
++
++#include <map>
++#include <memory>
++#include <optional>
++#include <set>
++#include <string>
++#include <vector>
++
++#include <libcamera/base/log.h>
++#include <libcamera/base/mutex.h>
++
++#include <libcamera/camera.h>
++#include <libcamera/control_ids.h>
++#include <libcamera/controls.h>
++#include <libcamera/property_ids.h>
++#include <libcamera/request.h>
++#include <libcamera/stream.h>
++
++#include "libcamera/internal/camera.h"
++#include "libcamera/internal/device_enumerator.h"
++#include "libcamera/internal/media_device.h"
++#include "libcamera/internal/pipeline_handler.h"
++#include "libcamera/internal/v4l2_videodevice.h"
++
++namespace libcamera {
++
++class UVCCameraData : public Camera::Private
++{
++public:
++	UVCCameraData(PipelineHandler *pipe)
++		: Camera::Private(pipe)
++	{
++	}
++
++	int init(MediaDevice *media);
++	void addControl(uint32_t cid, const ControlInfo &v4l2info,
++			ControlInfoMap::Map *ctrls);
++	void imageBufferReady(FrameBuffer *buffer);
++
++	const std::string &id() const { return id_; }
++
++	Mutex openLock_;
++	std::unique_ptr<V4L2VideoDevice> video_;
++	Stream stream_;
++	std::map<PixelFormat, std::vector<SizeRange>> formats_;
++
++	std::optional<v4l2_exposure_auto_type> autoExposureMode_;
++	std::optional<v4l2_exposure_auto_type> manualExposureMode_;
++
++protected:
++	bool generateId();
++
++	std::string id_;
++};
++
++class UVCCameraConfiguration : public CameraConfiguration
++{
++public:
++	UVCCameraConfiguration(UVCCameraData *data);
++
++	Status validate() override;
++
++private:
++	UVCCameraData *data_;
++};
++
++class PipelineHandlerUVC : public PipelineHandler
++{
++public:
++	PipelineHandlerUVC(CameraManager *manager);
++
++	std::unique_ptr<CameraConfiguration> generateConfiguration(Camera *camera,
++								   Span<const StreamRole> roles) override;
++	int configure(Camera *camera, CameraConfiguration *config) override;
++
++	int exportFrameBuffers(Camera *camera, Stream *stream,
++			       std::vector<std::unique_ptr<FrameBuffer>> *buffers) override;
++
++	int start(Camera *camera, const ControlList *controls) override;
++	void stopDevice(Camera *camera) override;
++
++	int queueRequestDevice(Camera *camera, Request *request) override;
++
++	bool match(DeviceEnumerator *enumerator) override;
++
++protected:
++	int processControl(const UVCCameraData *data, ControlList *controls,
++			   unsigned int id, const ControlValue &value);
++	int processControls(UVCCameraData *data, Request *request);
++
++	bool acquireDevice(Camera *camera) override;
++	void releaseDevice(Camera *camera) override;
++
++	UVCCameraData *cameraData(Camera *camera)
++	{
++		return static_cast<UVCCameraData *>(camera->_d());
++	}
++};
++
++} /* namespace libcamera */
+-- 
+2.49.0
+
