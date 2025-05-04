@@ -1,0 +1,107 @@
+From 1b4001d43f8bb42716b63fb723c97fa67c09c64d Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Sun, 4 May 2025 00:00:21 +0200
+Subject: [PATCH] static byte
+
+
+diff --git a/src/libcamera/pipeline/thermal/thermal.cpp b/src/libcamera/pipeline/thermal/thermal.cpp
+index 217541cb..9b4cc518 100644
+--- a/src/libcamera/pipeline/thermal/thermal.cpp
++++ b/src/libcamera/pipeline/thermal/thermal.cpp
+@@ -15,6 +15,8 @@
+ #include <iomanip>
+ #include <sstream>
+ 
++#include <bitset>
++
+ #include <libcamera/base/log.h>
+ 
+ #include <libcamera/camera.h>
+@@ -232,6 +234,8 @@ public:
+             const StreamConfiguration &cfg = stream_.configuration();
+             unsigned int width = cfg.size.width;
+             unsigned int height = cfg.size.height;
++
++            std::cout << "Thermal Height: " << height << " Width:" << width << std::endl;
+             
+             /* The frame contains two parts:
+              * - Top half: Image data (monochrome visual image)
+@@ -245,10 +249,6 @@ public:
+                 return;
+             }
+             
+-            /* Calculate the center pixel position */
+-            unsigned int centerX = width / 2;
+-            unsigned int centerY = height / 2;
+-            
+             /* Split the frame into image and temperature data */
+             /* The temperature data is in the bottom half of the frame */
+             unsigned int halfHeight = height / 2;
+@@ -274,7 +274,7 @@ public:
+             
+             /* Calculate the offset to the temperature data for the center pixel */
+             /* First, skip to the bottom half of the frame */
+-            size_t tempDataOffset = width * halfHeight * 2; // 2 bytes per pixel
++            size_t tempDataOffset = (((halfHeight + height) * width) + width/2) * 2; // 2 bytes per pixel
+             
+             /* Ensure we don't exceed buffer size */
+             if (tempDataOffset >= bufferSize) {
+@@ -283,31 +283,22 @@ public:
+                 return;
+             }
+             
+-            /* Then, go to the center pixel in the temperature data */
+-            size_t centerOffset = (centerY % halfHeight) * width + centerX;
+-            if (tempDataOffset + (centerOffset * 2) + 1 >= bufferSize) {
+-                LOG(Thermal, Error) << "Buffer too small for center thermal pixel";
+-                imageBufferReady(buffer);
+-                return;
+-            }
+-            
+-            tempDataOffset += centerOffset * 2;
+             
+             /* Extract the bytes */
+             uint8_t byte0 = data[tempDataOffset];
+             uint8_t byte1 = data[tempDataOffset + 1];
+-            byte1 = 75;
+             
+             /* Try different interpretations */
+             std::cout << "\n===== THERMAL CAMERA BYTE VALUES =====" << std::endl;
+-            std::cout << "Raw bytes: byte0=" << (int)byte0 << ", byte1=" << (int)byte1 << std::endl;
++            std::cout << "Raw bytes: offset" << tempDataOffset << std::endl;
++            std::cout << "Raw bytes: byte0=" << std::bitset<8>(static_cast<unsigned>(byte0)) << ", byte1=" << std::bitset<8>(static_cast<unsigned>(byte1)) << std::endl;
+             
+             /* Try different ways of combining the bytes */
+             uint16_t rawtemp = byte0 + (byte1 * 256);  // Python-style: hi + (lo * 256)
+             
+             float temp = (rawtemp / 64.0f) - 273.15f;
+             
+-            std::cout << "1. byte0 + (byte1 * 256): " << rawtemp << " -> " << temp << " °C" << std::endl;
++            std::cout << "1. byte0 + (byte1 * 256): " << std::dec << rawtemp << " -> " << temp << " °C" << std::endl;
+             
+             /* Log the temperature */
+             std::cout << "Thermal Camera Center Temperature: " << temp << " °C" << std::endl;
+@@ -326,10 +317,10 @@ public:
+             unsigned int pixelCount = 0;
+             
+             /* Scan the temperature data */
+-            for (unsigned int y = 0; y < halfHeight; y++) {
++            for (unsigned int y = 0; y < height; y++) {
+                 for (unsigned int x = 0; x < width; x++) {
+                     /* Calculate the offset to the temperature data for this pixel */
+-                    size_t offset = width * halfHeight * 2 + (y * width + x) * 2;
++                    size_t offset = width * height * 2 + (y * width + x) * 2;
+                     
+                     /* Make sure we don't go out of bounds */
+                     if (offset + 1 >= bufferSize)
+@@ -338,7 +329,6 @@ public:
+                     /* Extract the bytes */
+                     uint8_t pixelHi = data[offset];
+                     uint8_t pixelLo = data[offset + 1];
+-                    pixelLo = 75;
+                     
+                     /* Calculate temperature using the first interpretation (to match Python) */
+                     uint16_t pixelRawTemp = pixelHi + (pixelLo * 256);  // byte0 + (byte1 * 256)
+-- 
+2.49.0
+

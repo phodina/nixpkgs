@@ -1,0 +1,292 @@
+From 77898f129dc61df7e1c2d3f736af621485610c6d Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@protonmail.com>
+Date: Sat, 3 May 2025 23:40:33 +0200
+Subject: [PATCH] thermal: heatmap
+
+
+diff --git a/src/libcamera/pipeline/thermal/thermal.cpp b/src/libcamera/pipeline/thermal/thermal.cpp
+index e41dff1b..217541cb 100644
+--- a/src/libcamera/pipeline/thermal/thermal.cpp
++++ b/src/libcamera/pipeline/thermal/thermal.cpp
+@@ -11,6 +11,9 @@
+ #include <memory>
+ #include <vector>
+ #include <sys/mman.h>
++#include <cmath>
++#include <iomanip>
++#include <sstream>
+ 
+ #include <libcamera/base/log.h>
+ 
+@@ -38,9 +41,57 @@ class ThermalUVCCameraData : public UVCCameraData
+ {
+ public:
+     ThermalUVCCameraData(PipelineHandler *pipe)
+-        : UVCCameraData(pipe)
++        : UVCCameraData(pipe), colormap_(0), alpha_(1.0f), scale_(2)
+     {
+     }
++    
++    // Colormap types (matching OpenCV's colormaps)
++    enum ColormapType {
++        COLORMAP_JET = 0,
++        COLORMAP_HOT = 1,
++        COLORMAP_MAGMA = 2,
++        COLORMAP_INFERNO = 3,
++        COLORMAP_PLASMA = 4,
++        COLORMAP_BONE = 5,
++        COLORMAP_SPRING = 6,
++        COLORMAP_AUTUMN = 7,
++        COLORMAP_VIRIDIS = 8,
++        COLORMAP_PARULA = 9,
++        COLORMAP_RAINBOW = 10
++    };
++    
++    // Set the colormap type
++    void setColormap(int type) {
++        colormap_ = type % 11; // Ensure it's within range
++    }
++    
++    // Get the current colormap name
++    std::string getColormapName() const {
++        switch (colormap_) {
++            case COLORMAP_JET: return "Jet";
++            case COLORMAP_HOT: return "Hot";
++            case COLORMAP_MAGMA: return "Magma";
++            case COLORMAP_INFERNO: return "Inferno";
++            case COLORMAP_PLASMA: return "Plasma";
++            case COLORMAP_BONE: return "Bone";
++            case COLORMAP_SPRING: return "Spring";
++            case COLORMAP_AUTUMN: return "Autumn";
++            case COLORMAP_VIRIDIS: return "Viridis";
++            case COLORMAP_PARULA: return "Parula";
++            case COLORMAP_RAINBOW: return "Rainbow";
++            default: return "Unknown";
++        }
++    }
++    
++    // Set contrast level
++    void setContrast(float alpha) {
++        alpha_ = std::max(0.0f, std::min(3.0f, alpha));
++    }
++    
++    // Set scale factor
++    void setScale(int scale) {
++        scale_ = std::max(1, std::min(5, scale));
++    }
+ 
+     int init(MediaDevice *media)
+     {
+@@ -57,6 +108,112 @@ public:
+         return 0;
+     }
+ 
++private:
++    int colormap_;    // Current colormap type
++    float alpha_;     // Contrast level (1.0-3.0)
++    int scale_;       // Scale factor for display
++    
++    // RGB color structure
++    struct RGB {
++        uint8_t r, g, b;
++        
++        RGB() : r(0), g(0), b(0) {}
++        RGB(uint8_t red, uint8_t green, uint8_t blue) : r(red), g(green), b(blue) {}
++    };
++    
++    // YUV color structure (for YUYV format)
++    struct YUV {
++        uint8_t y, u, v;
++        
++        YUV() : y(0), u(128), v(128) {}
++        YUV(uint8_t luma, uint8_t cb, uint8_t cr) : y(luma), u(cb), v(cr) {}
++    };
++    
++    // Convert RGB to YUV
++    YUV rgbToYuv(const RGB &rgb) {
++        YUV yuv;
++        // Y = 0.299R + 0.587G + 0.114B
++        yuv.y = (uint8_t)(0.299f * rgb.r + 0.587f * rgb.g + 0.114f * rgb.b);
++        // U = -0.169R - 0.331G + 0.5B + 128
++        yuv.u = (uint8_t)(-0.169f * rgb.r - 0.331f * rgb.g + 0.5f * rgb.b + 128);
++        // V = 0.5R - 0.419G - 0.081B + 128
++        yuv.v = (uint8_t)(0.5f * rgb.r - 0.419f * rgb.g - 0.081f * rgb.b + 128);
++        return yuv;
++    }
++    
++    // Apply contrast adjustment to a value
++    uint8_t applyContrast(uint8_t value, float alpha) {
++        float adjusted = value * alpha;
++        return (uint8_t)std::min(255.0f, std::max(0.0f, adjusted));
++    }
++    
++    // Get color from JET colormap (blue -> cyan -> yellow -> red)
++    RGB getJetColor(float value) {
++        // Ensure value is in [0,1]
++        value = std::min(1.0f, std::max(0.0f, value));
++        
++        RGB color;
++        if (value < 0.125f) {
++            // Blue to blue-cyan
++            color.b = 255;
++            color.g = (uint8_t)(255 * value * 8);
++        } else if (value < 0.375f) {
++            // Blue-cyan to cyan
++            color.b = 255;
++            color.g = 255;
++            color.r = (uint8_t)(255 * (value - 0.125f) * 4);
++        } else if (value < 0.625f) {
++            // Cyan to yellow
++            color.g = 255;
++            color.r = 255;
++            color.b = (uint8_t)(255 * (1.0f - (value - 0.375f) * 4));
++        } else if (value < 0.875f) {
++            // Yellow to red
++            color.r = 255;
++            color.g = (uint8_t)(255 * (1.0f - (value - 0.625f) * 4));
++        } else {
++            // Red
++            color.r = 255;
++        }
++        return color;
++    }
++    
++    // Get color from HOT colormap (black -> red -> yellow -> white)
++    RGB getHotColor(float value) {
++        // Ensure value is in [0,1]
++        value = std::min(1.0f, std::max(0.0f, value));
++        
++        RGB color;
++        if (value < 0.33f) {
++            // Black to red
++            color.r = (uint8_t)(255 * value * 3);
++        } else if (value < 0.67f) {
++            // Red to yellow
++            color.r = 255;
++            color.g = (uint8_t)(255 * (value - 0.33f) * 3);
++        } else {
++            // Yellow to white
++            color.r = 255;
++            color.g = 255;
++            color.b = (uint8_t)(255 * (value - 0.67f) * 3);
++        }
++        return color;
++    }
++    
++    // Get color from a colormap based on the current colormap_ setting
++    RGB getColormapColor(float value) {
++        switch (colormap_) {
++            case COLORMAP_JET:
++                return getJetColor(value);
++            case COLORMAP_HOT:
++                return getHotColor(value);
++            // For simplicity, we'll use JET for other colormaps for now
++            default:
++                return getJetColor(value);
++        }
++    }
++
++public:
+     void processThermalBuffer(FrameBuffer *buffer)
+     {
+         /* Check if this is the Realtek USB Camera (0bda:5830) */
+@@ -219,6 +376,78 @@ public:
+             LOG(Thermal, Info) << "Max Temperature: " << maxTemp << " °C at (" << maxX << ", " << maxY << ")";
+             LOG(Thermal, Info) << "Min Temperature: " << minTemp << " °C at (" << minX << ", " << minY << ")";
+             LOG(Thermal, Info) << "Avg Temperature: " << avgTemp << " °C";
++            
++            /* Apply heatmap coloring to the image data */
++            try {
++                /* Create a writable buffer for processing */
++                MappedFrameBuffer mappedBufferWrite(buffer, MappedFrameBuffer::MapFlag::ReadWrite);
++                if (!mappedBufferWrite.isValid()) {
++                    LOG(Thermal, Error) << "Failed to map buffer for writing";
++                    imageBufferReady(buffer);
++                    return;
++                }
++                
++                /* Get the image data for the entire frame */
++                uint8_t *writeData = mappedBufferWrite.planes()[0].data();
++                
++                /* Calculate temperature range for normalization */
++                float tempRange = maxTemp - minTemp;
++                if (tempRange <= 0.0f) tempRange = 1.0f; // Avoid division by zero
++                
++                /* Process each pixel in the entire image */
++                for (unsigned int y = 0; y < height; y++) {
++                    for (unsigned int x = 0; x < width; x++) {
++                        /* Calculate the offset to the image data for this pixel */
++                        size_t offset = (y * width + x) * 2; // YUYV format: 2 bytes per pixel
++                        
++                        /* Get the original Y value (brightness) */
++                        uint8_t originalY = writeData[offset]; // Y is at even offsets
++                        
++                        /* Apply contrast adjustment */
++                        uint8_t adjustedY = applyContrast(originalY, alpha_);
++                        
++                        /* Normalize the brightness value to [0,1] for colormap */
++                        float normalizedValue = adjustedY / 255.0f;
++                        
++                        /* Get the color from the selected colormap */
++                        RGB color = getColormapColor(normalizedValue);
++                        
++                        /* Convert RGB to YUV */
++                        YUV yuv = rgbToYuv(color);
++                        
++                        /* Write back to the buffer in YUYV format */
++                        writeData[offset] = yuv.y;     // Y
++                        
++                        /* For U and V, we need to handle the YUYV format correctly */
++                        /* In YUYV, each macropixel has Y0 U Y1 V format */
++                        if (x % 2 == 0) {
++                            /* Even x: This is Y0, so we write U */
++                            writeData[offset + 1] = yuv.u;
++                        } else {
++                            /* Odd x: This is Y1, so we write V */
++                            writeData[offset + 1] = yuv.v;
++                        }
++                    }
++                }
++                
++                /* Draw simple crosshairs at the center (if needed) */
++                // This would require more complex pixel manipulation
++                // For now, we'll just log the temperature information
++                
++                /* Format temperature strings */
++                std::stringstream tempStr, maxTempStr, minTempStr, avgTempStr;
++                tempStr << std::fixed << std::setprecision(1) << temp << " °C";
++                maxTempStr << std::fixed << std::setprecision(1) << maxTemp << " °C";
++                minTempStr << std::fixed << std::setprecision(1) << minTemp << " °C";
++                avgTempStr << std::fixed << std::setprecision(1) << avgTemp << " °C";
++                
++                /* Log the applied colormap */
++                LOG(Thermal, Debug) << "Applied " << getColormapName() << " heatmap to thermal image";
++                LOG(Thermal, Debug) << "Center: " << tempStr.str() << ", Max: " << maxTempStr.str() 
++                                   << ", Min: " << minTempStr.str() << ", Avg: " << avgTempStr.str();
++            } catch (const std::exception &e) {
++                LOG(Thermal, Error) << "Error applying heatmap: " << e.what();
++            }
+         }
+ 
+         /* Call the original method to complete the request */
+@@ -344,6 +573,8 @@ public:
+         std::set<Stream *> streams{ &data->stream_ };
+         std::shared_ptr<Camera> camera =
+             Camera::create(std::move(data), id, streams);
++        
++        /* Register the camera */
+         registerCamera(std::move(camera));
+ 
+         /* Enable hot-unplug notifications */
+@@ -450,7 +681,7 @@ public:
+         }
+         
+         /* Process any controls in the request */
+-        int ret = processControls(data, request);
++        int ret = PipelineHandlerUVC::processControls(data, request);
+         if (ret < 0)
+             return ret;
+         
+-- 
+2.49.0
+

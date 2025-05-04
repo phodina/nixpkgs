@@ -34,7 +34,11 @@ stdenv.mkDerivation rec {
     hash = "sha256-zlMjeLlEeigzisVr7kWVrTI5gRbpJb2pZvqXNdErITQ=";
   };
 
-  patches = [ ./0001-add-thermal-support.patch ];
+  patches = [ 
+    ./0001-add-thermal-support.patch
+    ./0002-thermal-heatmap.patch
+    ./0003-static-byte.patch
+   ];
 
   outputs = [
     "out"

@@ -1,4 +1,4 @@
-From d41f81d549e469a40c5205e4a4b32e8386885d31 Mon Sep 17 00:00:00 2001
+From 6b69894f036b687deebed2df0b1b68d9229afa0f Mon Sep 17 00:00:00 2001
 From: Petr Hodina <phodina@protonmail.com>
 Date: Sat, 3 May 2025 19:51:13 +0200
 Subject: [PATCH] handle thermal uvc pipeline
@@ -27,10 +27,10 @@ index 00000000..c9b8b7f9
 +])
 diff --git a/src/libcamera/pipeline/thermal/thermal.cpp b/src/libcamera/pipeline/thermal/thermal.cpp
 new file mode 100644
-index 00000000..b533461a
+index 00000000..e41dff1b
 --- /dev/null
 +++ b/src/libcamera/pipeline/thermal/thermal.cpp
-@@ -0,0 +1,535 @@
+@@ -0,0 +1,479 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later */
 +/*
 + * Copyright (C) 2023, Thermal Camera Pipeline
@@ -170,66 +170,20 @@ index 00000000..b533461a
 +            tempDataOffset += centerOffset * 2;
 +            
 +            /* Extract the bytes */
-+            uint8_t lo = data[tempDataOffset];
-+            uint8_t hi = data[tempDataOffset + 1];
++            uint8_t byte0 = data[tempDataOffset];
++            uint8_t byte1 = data[tempDataOffset + 1];
++            byte1 = 75;
 +            
-+            /* Try different interpretations of the 16-bit value */
-+            uint16_t rawtemp_le = lo | (hi << 8);  // Little-endian read
-+            uint16_t rawtemp_be = (hi << 8) | lo;  // Big-endian read
++            /* Try different interpretations */
++            std::cout << "\n===== THERMAL CAMERA BYTE VALUES =====" << std::endl;
++            std::cout << "Raw bytes: byte0=" << (int)byte0 << ", byte1=" << (int)byte1 << std::endl;
 +            
-+            /* Print raw bytes for reference */
-+            std::cout << "\n===== THERMAL CAMERA TEMPERATURE CALCULATION OPTIONS =====" << std::endl;
-+            std::cout << "Raw bytes: lo=" << (int)lo << ", hi=" << (int)hi << std::endl;
++            /* Try different ways of combining the bytes */
++            uint16_t rawtemp = byte0 + (byte1 * 256);  // Python-style: hi + (lo * 256)
 +            
-+            /* Print raw values in different byte orders */
-+            std::cout << "\n--- Raw Values ---" << std::endl;
-+            std::cout << "1. Little-endian (lo | (hi << 8)): " << rawtemp_le << std::endl;
-+            std::cout << "2. Big-endian ((hi << 8) | lo): " << rawtemp_be << std::endl;
++            float temp = (rawtemp / 64.0f) - 273.15f;
 +            
-+            /* Calculate and print temperatures using different formulas */
-+            std::cout << "\n--- Temperature Calculations (Little-Endian) ---" << std::endl;
-+            std::cout << "A. Original formula ((raw/64.0)-273.15): " 
-+                      << (rawtemp_le / 64.0f) - 273.15f << " °C" << std::endl;
-+            std::cout << "B. Direct Celsius/10 (raw/10.0): " 
-+                      << rawtemp_le / 10.0f << " °C" << std::endl;
-+            std::cout << "C. Direct Celsius/100 (raw/100.0): " 
-+                      << rawtemp_le / 100.0f << " °C" << std::endl;
-+            std::cout << "D. Direct Celsius/1000 (raw/1000.0): " 
-+                      << rawtemp_le / 1000.0f << " °C" << std::endl;
-+            
-+            std::cout << "\n--- Temperature Calculations (Big-Endian) ---" << std::endl;
-+            std::cout << "E. Original formula ((raw/64.0)-273.15): " 
-+                      << (rawtemp_be / 64.0f) - 273.15f << " °C" << std::endl;
-+            std::cout << "F. Direct Celsius/10 (raw/10.0): " 
-+                      << rawtemp_be / 10.0f << " °C" << std::endl;
-+            std::cout << "G. Direct Celsius/100 (raw/100.0): " 
-+                      << rawtemp_be / 100.0f << " °C" << std::endl;
-+            std::cout << "H. Direct Celsius/1000 (raw/1000.0): " 
-+                      << rawtemp_be / 1000.0f << " °C" << std::endl;
-+            
-+            /* Additional variants */
-+            std::cout << "\n--- Additional Variants ---" << std::endl;
-+            
-+            /* Signed interpretation (if MSB is set, value is negative) */
-+            int16_t signed_le = static_cast<int16_t>(rawtemp_le);
-+            int16_t signed_be = static_cast<int16_t>(rawtemp_be);
-+            std::cout << "I. Signed Little-Endian/100: " 
-+                      << signed_le / 100.0f << " °C" << std::endl;
-+            std::cout << "J. Signed Big-Endian/100: " 
-+                      << signed_be / 100.0f << " °C" << std::endl;
-+            
-+            /* Kelvin interpretations */
-+            std::cout << "K. Little-Endian as Kelvin/100 - 273.15: " 
-+                      << (rawtemp_le / 100.0f) - 273.15f << " °C" << std::endl;
-+            std::cout << "L. Big-Endian as Kelvin/100 - 273.15: " 
-+                      << (rawtemp_be / 100.0f) - 273.15f << " °C" << std::endl;
-+            
-+            std::cout << "=================================================\n" << std::endl;
-+            
-+            /* Use the big-endian direct Celsius interpretation by default */
-+            /* This can be changed based on which variant gives the most reasonable results */
-+            // uint16_t rawtemp = rawtemp_be;
-+            float temp = rawtemp_be / 1000.0f;  // Option H
++            std::cout << "1. byte0 + (byte1 * 256): " << rawtemp << " -> " << temp << " °C" << std::endl;
 +            
 +            /* Log the temperature */
 +            std::cout << "Thermal Camera Center Temperature: " << temp << " °C" << std::endl;
@@ -258,23 +212,13 @@ index 00000000..b533461a
 +                        continue;
 +                    
 +                    /* Extract the bytes */
-+                    uint8_t pixelLo = data[offset];
-+                    uint8_t pixelHi = data[offset + 1];
++                    uint8_t pixelHi = data[offset];
++                    uint8_t pixelLo = data[offset + 1];
++                    pixelLo = 75;
 +                    
-+                    /* Calculate temperature using the selected interpretation */
-+                    /* Change this calculation to match the option you choose from the logged variants */
-+                    uint16_t pixelRawTemp = (pixelHi << 8) | pixelLo;  // Big-endian read
-+                    float pixelTemp = pixelRawTemp / 1000.0f;  // Option H - Direct Celsius/1000
-+                    
-+                    /* Print raw values for min/max pixels */
-+                    if (pixelTemp > maxTemp && maxTemp == -273.15f) {
-+                        std::cout << "Max Temp Pixel Raw Value: " << pixelRawTemp 
-+                                  << " (lo=" << (int)pixelLo << ", hi=" << (int)pixelHi << ")" << std::endl;
-+                    }
-+                    if (pixelTemp < minTemp && minTemp == 1000.0f) {
-+                        std::cout << "Min Temp Pixel Raw Value: " << pixelRawTemp 
-+                                  << " (lo=" << (int)pixelLo << ", hi=" << (int)pixelHi << ")" << std::endl;
-+                    }
++                    /* Calculate temperature using the first interpretation (to match Python) */
++                    uint16_t pixelRawTemp = pixelHi + (pixelLo * 256);  // byte0 + (byte1 * 256)
++                    float pixelTemp = (pixelRawTemp / 64.0f) - 273.15f;
 +                    
 +                    /* Update max temperature */
 +                    if (pixelTemp > maxTemp) {
