@@ -156,13 +156,14 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "depthai-core";
+  # https://github.com/luxonis/depthai-core/pull/1319
   version = "v3_develop";
 
   src = fetchFromGitHub {
     owner = "luxonis";
     repo = "depthai-core";
-    rev = "c4a52f6958e78c26e9dba284df5bacdc724bb761";
-    hash = "sha256-tvmxZYt3g5JZlT8ZfqXqy4FSXul/F+Hx8rOixBGe7jk=";
+    rev = "3573fa7306151432a3f5d9747dca1a875e110d80";
+    hash = "sha256-yg+FdBaGYjZAQ1lv0k+WI1Ad8nNwF8SUkth1hLd0q2Q=";
     fetchSubmodules = true;
   };
 
