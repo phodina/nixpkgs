@@ -162,8 +162,8 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "luxonis";
     repo = "depthai-core";
-    rev = "58383b308d5157bf9f6e13fecebc64a3bd089da2";
-    hash = "sha256-fxAER8Jvh2skj+AcxqXRg7G1a9t40T2bIIzTMZXpt5E=";
+    rev = "64e01c9d42aa6f3d1d8b57630f8f0058f2b2de16";
+    hash = "sha256-KkKogsVcZwtb4DKLCkxs54cxCicg+tmW0Yg5CukUB7c=";
     fetchSubmodules = true;
   };
 
