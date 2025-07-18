@@ -75,11 +75,12 @@ let
   prefixVar = "\${" + "prefix}";
   # Latest commits are not compatible, use older version
   xtensorCompat = xtensor.overrideAttrs (old: {
+
     src = fetchFromGitHub {
       owner = "xtensor-stack";
       repo = "xtensor";
-      rev = "825c0fd8a465049c06ad89fa3911b342dbffcabf";
-      hash = "sha256-gg1R/4ykdOQOpNzKUViaCdybvIXosJobduIagRv/15E=";
+      rev = "8ef0ee649fcd7476242af1d2072b45364036937d";
+      hash = "sha256-qxOgaa0tIojlqxJxW00SUPRZp7gBJA0dLyQ3ToNk2Os=";
     };
 
     preConfigure = ''
@@ -150,33 +151,34 @@ args:
 
 stdenv.mkDerivation (rec {
   pname = "depthai-core";
-  version = "3.0.0-beta.1";
+  version = "3.0.0-rc.2";
 
   src = fetchFromGitHub {
     owner = "luxonis";
     repo = "depthai-core";
     tag = "v${version}";
-    hash = "sha256-I8R+sdF0QWvJEQxaP8b9sncW3fOooyv8LKmRqRAX42c=";
+    hash = "sha256-UjFxTXZ1j82OlEyw32Syr1QmGsA/Kd6VmRn7CsAO82A=";
     fetchSubmodules = true;
   };
 
   patches = [
     # Offine build
     (fetchpatch {
-      url = "https://github.com/luxonis/depthai-core/pull/1303/commits/5340a086445282f121dfe25966e00bf13dd4ef67.patch";
-      hash = "sha256-JoNaYJ4j7upBLvf2tfQE5Fh7KRr2FO+is0eselzqwIE=";
+      url = "https://github.com/luxonis/depthai-core/pull/1303/commits/be1345a499219e87223d7911e3c0541bf01a319b.patch";
+      hash = "sha256-xSPd1yog0VH8ZY1PupyCVRD90/kDWADP+HN7n6So+Jg=";
     })
     # CMake system install and fix RPATH
-    (fetchpatch {
-      url = "https://github.com/luxonis/depthai-core/pull/1309/commits/3caf449df59ea245797f4363da53149ef2978897.patch";
-      hash = "sha256-J2NrGjWMeH4ks9cSfa+vtm4UTRM7Wp//0F/q+u/aKCs=";
-    })
+#    (fetchpatch {
+#      url = "https://github.com/luxonis/depthai-core/pull/1309/commits/3caf449df59ea245797f4363da53149ef2978897.patch";
+#      hash = "sha256-J2NrGjWMeH4ks9cSfa+vtm4UTRM7Wp//0F/q+u/aKCs=";
+#    })
+
+    ./0001-cmake-download-FWP-file-if-enabled.patch
+    ./0001-cmake-fix-path-to-xtensor-include.patch
+    ./0001-xtensor-python.patch
 
     ./0001-nixos-specific-patches.patch
     ./0002-cmake-Add-option-to-enable-3rdparty-dependencies.patch
-
-    # NOTE: Already merged in 'v3_develop' https://github.com/luxonis/depthai-core/pull/1329
-    ./0003-fix-include-directory-tests.patch
 
     ./0004-fetch.patch
   ];
@@ -298,12 +300,14 @@ stdenv.mkDerivation (rec {
         mkdir -p /tmp/$name/source/build/resources
         cp ${depthai-data}/share/resources/* /tmp/$name/source/build/resources
         rm include/3rdparty -rf
+        rm 3rdparty -rf
       ''
     else
       ''
         mkdir -p /build/source/build/resources
         cp ${depthai-data}/share/resources/* /build/source/build/resources
         rm include/3rdparty -rf
+        rm 3rdparty -rf
       '';
 
   meta = {
