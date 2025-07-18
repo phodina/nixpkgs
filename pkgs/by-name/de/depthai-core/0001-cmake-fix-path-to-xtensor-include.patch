@@ -21,6 +21,75 @@ index 9a15ea001..9f0e14147 100644
  #endif
  #if defined(_ON_DEF)
      #define ON _ON_DEF
+diff --git a/tests/src/onhost_tests/pipeline/datatype/nndata_test.cpp b/tests/src/onhost_tests/pipeline/datatype/nndata_test.cpp
+index 039bf3ae5..4ea1cda5e 100644
+--- a/tests/src/onhost_tests/pipeline/datatype/nndata_test.cpp
++++ b/tests/src/onhost_tests/pipeline/datatype/nndata_test.cpp
+@@ -3,7 +3,7 @@
+ #include <depthai/pipeline/datatype/NNData.hpp>
+
+ #include "depthai/common/TensorInfo.hpp"
+-#include "xtensor/misc/xmanipulation.hpp"
++#include <xtensor/xmanipulation.hpp>
+
+ TEST_CASE("a") {
+     dai::NNData nndata;
+diff --git a/examples/cpp/DetectionNetwork/detection_network_remap.cpp b/examples/cpp/Detecti
+onNetwork/detection_network_remap.cpp
+index 0974801c1..3af50f203 100644
+--- a/examples/cpp/DetectionNetwork/detection_network_remap.cpp
++++ b/examples/cpp/DetectionNetwork/detection_network_remap.cpp
+@@ -6,8 +6,8 @@
+ #include <vector>
+
+ #include "depthai/depthai.hpp"
+-#include "xtensor/containers/xadapt.hpp"
+-#include "xtensor/core/xmath.hpp"
++#include <xtensor/xadapt.hpp>
++#include <xtensor/xmath.hpp>
+
+ cv::Mat colorizeDepth(cv::Mat frameDepth) {
+     cv::Mat invalidMask = frameDepth == 0;
+diff --git a/examples/cpp/NeuralNetwork/neural_network_multi_input.cpp b/examples/cpp/NeuralNetwork/neural_network_multi_input.cpp
+index 1bf026ffb..0ebede060 100644
+--- a/examples/cpp/NeuralNetwork/neural_network_multi_input.cpp
++++ b/examples/cpp/NeuralNetwork/neural_network_multi_input.cpp
+@@ -1,6 +1,6 @@
+ #include <iostream>
+ #include <opencv2/opencv.hpp>
+-#include <xtensor/containers/xarray.hpp>
++#include <xtensor/xarray.hpp>
+
+ #include "depthai/depthai.hpp"
+ #include "depthai/modelzoo/Zoo.hpp"
+diff --git a/examples/cpp/NeuralNetwork/neural_network_multi_input_combined.cpp b/examples/cpp/NeuralNetwork/neural_network_multi_input_combined.cpp
+index bcb8a90c9..caf15aeae 100644
+--- a/examples/cpp/NeuralNetwork/neural_network_multi_input_combined.cpp
++++ b/examples/cpp/NeuralNetwork/neural_network_multi_input_combined.cpp
+@@ -1,7 +1,7 @@
+ #include <iostream>
+ #include <opencv2/opencv.hpp>
+-#include <xtensor/containers/xadapt.hpp>
+-#include <xtensor/containers/xarray.hpp>
++#include <xtensor/xadapt.hpp>
++#include <xtensor/xarray.hpp>
+
+ #include "depthai/depthai.hpp"
+ #include "depthai/modelzoo/Zoo.hpp"
+diff --git a/examples/cpp/RVC2/ToF/tof.cpp b/examples/cpp/RVC2/ToF/tof.cpp
+index 7a319529a..ef2f39d9d 100644
+--- a/examples/cpp/RVC2/ToF/tof.cpp
++++ b/examples/cpp/RVC2/ToF/tof.cpp
+@@ -1,7 +1,7 @@
+ #include <iostream>
+ #include <opencv2/opencv.hpp>
+-#include <xtensor/containers/xadapt.hpp>
+-#include <xtensor/containers/xarray.hpp>
++#include <xtensor/xadapt.hpp>
++#include <xtensor/xarray.hpp>
+
+ #include "depthai/depthai.hpp"
+
 -- 
 2.47.2
 
