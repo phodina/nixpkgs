@@ -168,10 +168,10 @@ stdenv.mkDerivation (rec {
       hash = "sha256-xSPd1yog0VH8ZY1PupyCVRD90/kDWADP+HN7n6So+Jg=";
     })
     # CMake system install and fix RPATH
-#    (fetchpatch {
-#      url = "https://github.com/luxonis/depthai-core/pull/1309/commits/3caf449df59ea245797f4363da53149ef2978897.patch";
-#      hash = "sha256-J2NrGjWMeH4ks9cSfa+vtm4UTRM7Wp//0F/q+u/aKCs=";
-#    })
+    (fetchpatch {
+      url = "https://github.com/luxonis/depthai-core/pull/1309/commits/3caf449df59ea245797f4363da53149ef2978897.patch";
+      hash = "sha256-J2NrGjWMeH4ks9cSfa+vtm4UTRM7Wp//0F/q+u/aKCs=";
+    })
 
     ./0001-cmake-download-FWP-file-if-enabled.patch
     ./0001-cmake-fix-path-to-xtensor-include.patch
