@@ -6,14 +6,14 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "depthai-data";
-  # DepthAI v3.0.0-beta.1
-  version = "0-unstable-2025-05-22";
+  # DepthAI v3.0.0-rc.2
+  version = "v3_rc";
 
   src = fetchFromGitHub {
     owner = "phodina";
     repo = "depthai-data";
-    rev = "3b7dc1d3ddde1961c5d47b5188993fc9b3860349";
-    hash = "sha256-wdgPziAilht/e3LEjSnYPwfbNgrG22fXdA0cQ6wl4zE=";
+    rev = "49b7cd75402e72de860c4e5888dae896d3f7c9bc";
+    hash = "sha256-NRPWCmPlhIOjhnOO9e5hLYLSgAJejPpBGfxp6QaUcc8=";
   };
 
   # No build phase needed, this is just data
