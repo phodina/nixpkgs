@@ -1,0 +1,53 @@
+From aebe9356060a8dee3b5f14861f880c424aead9f8 Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@luxonis.com>
+Date: Fri, 18 Jul 2025 17:59:35 +0200
+Subject: [PATCH] xtensor
+
+
+diff --git a/bindings/python/external/xtensor-python/include/xtensor-python/pyarray.hpp b/bindings/python/external/xtensor-python/include/xtensor-python/pyarray.hpp
+index 0854fb3..497c126 100644
+--- a/bindings/python/external/xtensor-python/include/xtensor-python/pyarray.hpp
++++ b/bindings/python/external/xtensor-python/include/xtensor-python/pyarray.hpp
+@@ -14,9 +14,9 @@
+ #include <cstddef>
+ #include <vector>
+ 
+-#include "xtensor/containers/xbuffer_adaptor.hpp"
+-#include "xtensor/core/xiterator.hpp"
+-#include "xtensor/core/xsemantic.hpp"
++#include <xtensor/xbuffer_adaptor.hpp>
++#include <xtensor/xiterator.hpp>
++#include <xtensor/xsemantic.hpp>
+ 
+ #include "pyarray_backstrides.hpp"
+ #include "pycontainer.hpp"
+diff --git a/bindings/python/external/xtensor-python/include/xtensor-python/pycontainer.hpp b/bindings/python/external/xtensor-python/include/xtensor-python/pycontainer.hpp
+index 5e80a32..fc07af9 100644
+--- a/bindings/python/external/xtensor-python/include/xtensor-python/pycontainer.hpp
++++ b/bindings/python/external/xtensor-python/include/xtensor-python/pycontainer.hpp
+@@ -32,7 +32,7 @@
+ #undef copysign
+ 
+ #include <cmath>
+-#include "xtensor/containers/xcontainer.hpp"
++#include <xtensor/xcontainer.hpp>
+ 
+ #include "xtl/xsequence.hpp"
+ 
+diff --git a/bindings/python/external/xtensor-python/include/xtensor-python/xtensor_type_caster_base.hpp b/bindings/python/external/xtensor-python/include/xtensor-python/xtensor_type_caster_base.hpp
+index 902235f..53eff17 100644
+--- a/bindings/python/external/xtensor-python/include/xtensor-python/xtensor_type_caster_base.hpp
++++ b/bindings/python/external/xtensor-python/include/xtensor-python/xtensor_type_caster_base.hpp
+@@ -14,8 +14,8 @@
+ #include <algorithm>
+ #include <vector>
+ 
+-#include "xtensor/containers/xtensor.hpp"
+-#include "xtensor/containers/xfixed.hpp"
++#include <xtensor/xtensor.hpp>
++#include <xtensor/xfixed.hpp>
+ 
+ #include <pybind11/numpy.h>
+ #include <pybind11/pybind11.h>
+-- 
+2.47.2

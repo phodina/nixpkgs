@@ -1,0 +1,26 @@
+From 60c77fc47adb30aa0377be53ed4fa87ade161a57 Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@luxonis.com>
+Date: Fri, 18 Jul 2025 17:32:37 +0200
+Subject: [PATCH] cmake: fix path to xtensor include
+
+
+diff --git a/include/depthai/pipeline/datatype/NNData.hpp b/include/depthai/pipeline/datatype/NNData.hpp
+index 9a15ea001..9f0e14147 100644
+--- a/include/depthai/pipeline/datatype/NNData.hpp
++++ b/include/depthai/pipeline/datatype/NNData.hpp
+@@ -33,9 +33,9 @@
+     #undef ON
+ #endif
+ #ifdef DEPTHAI_XTENSOR_SUPPORT
+-    #include "xtensor/containers/xadapt.hpp"
+-    #include "xtensor/containers/xarray.hpp"
+-    #include "xtensor/misc/xmanipulation.hpp"
++    #include <xtensor/xadapt.hpp>
++    #include <xtensor/xarray.hpp>
++    #include <xtensor/xmanipulation.hpp>
+ #endif
+ #if defined(_ON_DEF)
+     #define ON _ON_DEF
+-- 
+2.47.2
+

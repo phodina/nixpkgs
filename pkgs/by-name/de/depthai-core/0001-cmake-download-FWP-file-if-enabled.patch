@@ -1,0 +1,81 @@
+From 11c10daee887527ca9ce8bd404f298e2300d275a Mon Sep 17 00:00:00 2001
+From: Petr Hodina <phodina@luxonis.com>
+Date: Fri, 18 Jul 2025 17:06:59 +0200
+Subject: [PATCH] cmake: download FWP file if enabled
+
+
+diff --git a/cmake/DepthaiDeviceKbDownloader.cmake b/cmake/DepthaiDeviceKbDownloader.cmake
+index 2cd26d535..e1caf9a68 100644
+--- a/cmake/DepthaiDeviceKbDownloader.cmake
++++ b/cmake/DepthaiDeviceKbDownloader.cmake
+@@ -126,18 +126,20 @@ function(DepthaiDeviceDownloader)
+     endif()
+ 
+     # Download firmware package
+-    message(STATUS "Downloading and checking ${device_type}-fwp.tar.xz")
+-    message(STATUS "Download URL: ${_download_directory_url}/${device_type}-fwp-${_version_commit_identifier}.tar.xz")
+-    DownloadAndChecksum(
+-        "${_download_directory_url}/${device_type}-fwp-${_version_commit_identifier}.tar.xz" # File
+-        "${_download_directory_url}/${device_type}-fwp-${_version_commit_identifier}.tar.xz.sha256" # File checksum
+-        "${folder}/${device_type}-fwp-${_version_commit_identifier}.tar.xz"
+-        status
+-    )
+-    if(${status})
+-        message(STATUS "\nCouldn't download ${device_type}-fwp.tar.xz\n")
+-        PrintErrorMessage(${status})
+-        message(FATAL_ERROR "Aborting.\n")
++    if(DEPTHAI_FETCH_ARTIFACTS)
++        message(STATUS "Downloading and checking ${device_type}-fwp.tar.xz")
++        message(STATUS "Download URL: ${_download_directory_url}/${device_type}-fwp-${_version_commit_identifier}.tar.xz")
++        DownloadAndChecksum(
++            "${_download_directory_url}/${device_type}-fwp-${_version_commit_identifier}.tar.xz" # File
++            "${_download_directory_url}/${device_type}-fwp-${_version_commit_identifier}.tar.xz.sha256" # File checksum
++            "${folder}/${device_type}-fwp-${_version_commit_identifier}.tar.xz"
++            status
++        )
++        if(${status})
++            message(STATUS "\nCouldn't download ${device_type}-fwp.tar.xz\n")
++            PrintErrorMessage(${status})
++            message(FATAL_ERROR "Aborting.\n")
++        endif()
+     endif()
+     # add depthai-device-kb-fwp.tar.xz to list
+     list(APPEND "${output_list_var}" "${folder}/${device_type}-fwp-${_version_commit_identifier}.tar.xz")
+diff --git a/cmake/DepthaiDownloader.cmake b/cmake/DepthaiDownloader.cmake
+index 66d555e5c..2d4e7f893 100644
+--- a/cmake/DepthaiDownloader.cmake
++++ b/cmake/DepthaiDownloader.cmake
+@@ -142,17 +142,19 @@ function(DepthaiDownload)
+ 
+ 
+     # Download depthai-device firmware package
+-    message(STATUS "Downloading and checking depthai-device-fwp.tar.xz")
+-    DownloadAndChecksum(
+-        "${_download_directory_url}/depthai-device-fwp-${_version_commit_identifier}.tar.xz" # File
+-        "${_download_directory_url}/depthai-device-fwp-${_version_commit_identifier}.tar.xz.sha256" # File checksum
+-        "${folder}/depthai-device-fwp-${_version_commit_identifier}.tar.xz"
+-        status
+-    )
+-    if(${status})
+-        message(STATUS "\nCouldn't download depthai-device-fwp.tar.xz\n")
+-        PrintErrorMessage(${status})
+-        message(FATAL_ERROR "Aborting.\n")
++    if(DEPTHAI_FETCH_ARTIFACTS)
++        message(STATUS "Downloading and checking depthai-device-fwp.tar.xz")
++        DownloadAndChecksum(
++            "${_download_directory_url}/depthai-device-fwp-${_version_commit_identifier}.tar.xz" # File
++            "${_download_directory_url}/depthai-device-fwp-${_version_commit_identifier}.tar.xz.sha256" # File checksum
++            "${folder}/depthai-device-fwp-${_version_commit_identifier}.tar.xz"
++            status
++        )
++        if(${status})
++            message(STATUS "\nCouldn't download depthai-device-fwp.tar.xz\n")
++            PrintErrorMessage(${status})
++            message(FATAL_ERROR "Aborting.\n")
++        endif()
+     endif()
+     # add depthai-device-fwp.tar.xz to list
+     list(APPEND "${output_list_var}" "${folder}/depthai-device-fwp-${_version_commit_identifier}.tar.xz")
+-- 
+2.47.2
+
