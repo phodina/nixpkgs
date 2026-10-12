@@ -26,14 +26,14 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "stevia";
-  version = "0.54.0";
+  version = "0.57.0";
 
   src = fetchFromGitLab {
     domain = "gitlab.gnome.org";
     owner = "World/Phosh";
     repo = "stevia";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-eCM2PSn0sDnL7iDbgt6phQsGmdeBfkVjOkxt42WxyXo=";
+    hash = "sha256-0hOjVojlUQLWTbsyejrP3sa79gb1ePeJlsXAhDvDijE=";
     # Workaround for https://github.com/NixOS/nixpkgs/issues/485701
     forceFetchGit = true;
   };
